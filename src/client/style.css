@@ -1,0 +1,111 @@
+* {
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  }
+
+
+  .button_div {
+    text-align: center;
+    width: 100%;
+    margin:0 auto;
+    position: absolute;
+    top: 30%;
+  }
+
+  .button {
+      padding: 30px 100px;
+      border-radius: 4px;
+      text-align: center;
+      display: inline-block;
+      font-size: 20px;
+  }
+
+  .smallButton {
+    width: 14em;
+    padding: 8px 8px;
+    border-radius: 4px;
+    text-align: center;
+    display: inline-block;
+    font-size: 12px;
+}
+
+  .notification-bottom {
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+    left: 0;
+    /* Rest of your styling */
+  }
+  
+  .notification-close {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    /* This are approximated values, and the rest of your styling goes here */
+  }
+
+  .alert {
+    padding: 20px;
+    background-color: #f44336;
+    color: white;
+  }
+  
+  .closebtn {
+    margin-left: 15px;
+    color: white;
+    font-weight: bold;
+    float: right;
+    font-size: 22px;
+    line-height: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  
+  .closebtn:hover {
+    color: black;
+  }
+
+  .chessDiv {
+    width: 100%;
+    height: 100%;
+  }
+
+  #chess_options {
+    float: left;
+    width: 20%;
+    height: 100%;
+  }
+
+  /* #chess_div_right {
+    float: left;
+    width: 20%;
+    height: 100%;
+  } */
+
+  #chess_div_right {
+    float: right;
+    width: 80%;
+    height: 100%;
+  }
+
+  /* #row_lettering {
+    float: left;
+    width: 80px;
+    height: 300px;
+  } */
+
+  /* #row_lettering {
+    float: left;
+  } */
+
+  /* #column_numbering {
+    float: left;
+    width: 300px;
+    height: 80px;
+  }
+
+  #board_div {
+    float: left;
+    width: 300px;
+    height: 80px;
+  } */
+
