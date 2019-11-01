@@ -1,3 +1,6 @@
+# import sys
+# sys.path.append("..")
+
 import chess_util
 import chess
 from chess import Chess
@@ -30,8 +33,8 @@ class TestNC(unittest.TestCase):
         self.assertTrue(np.array_equal(self.nc.board, empty_nc_board))
 
     def test_legal_start_move(self):
-        b, m = self.nc.make_move((1, 2), 'X')
-        self.assertTrue(b)
+        b, msg = self.nc.make_move((1, 2), 'X')
+        self.assertTrue(b, "failed with msg: " + msg)
         self.assertEqual(self.nc.board[1, 2], 'X')
 
     def test_move_type(self):
@@ -270,7 +273,7 @@ class TestDeterministicAI(unittest.TestCase):
             self.assertLessEqual(children_len, 9 - level)
         if children_len == 0:
             won, winner = naught_util.check_winner(node.board)
-            self.assertTrue(won)
+            self.assertTrue(won, "failed with winner: " + str(winner))
         #     # self.assertGreaterEqual(node.score, -1)
         # else:
         #     self.assertEqual(node.score, None)
@@ -301,7 +304,7 @@ class TestDeterministicAI(unittest.TestCase):
         nc = self.ai.nc
         success, move, msg = self.ai.make_move()
         # print(success)
-        self.assertTrue(success)
+        self.assertTrue(success, "failed with msg: " + msg)
         # print("\n\n ", nc.board[move[0]], "\n\n")
         self.assertEqual(nc.board[move[0]], 'X')
 
@@ -310,7 +313,7 @@ class TestDeterministicAI(unittest.TestCase):
         ai_x = NaughtAI(nc, player='X')
         ai_o = NaughtAI(nc, player='O')
         success, move, msg = ai_o.make_move()
-        self.assertFalse(success)
+        self.assertFalse(success, "Illegal move allowed. move: " + str(move))
         # naught_util.print_board(nc.board)
         success, move, msg = ai_x.make_move()
         self.assertTrue(success)
@@ -339,7 +342,7 @@ class TestDeterministicAI(unittest.TestCase):
         self.assertTrue(success)
         self.assertEqual(msg, "Success")
         success, move, msg = self.ai.make_move()
-        self.assertTrue(success)
+        self.assertTrue(success, "legal move disallowed. move = " + str(move))
         self.assertEqual(msg, "Move performed")
         self.assertTrue(np.array_equal(naught_util.char_to_i1_board(nc.board), self.ai.expected_board),
                         "Failed the expected stuff")
@@ -658,7 +661,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[2, 3] = 1
         self.chess.board[3, 4] = -1
         success, msg = self.chess.move((2, 3), (3, 4))
-        self.assertTrue(success)
+        self.assertTrue(success, "failed with msg: " + msg)
         self.assertEqual(self.chess.board[2, 3], 0)
         self.assertEqual(self.chess.board[3, 4], 1)
 
@@ -666,7 +669,7 @@ class TestChess(unittest.TestCase):
         self.chess.board = chess_util.get_empty_board()
         self.chess.board[3, 3] = 1
         success, msg = self.chess.move((3, 3), (5, 3))
-        self.assertFalse(success)
+        self.assertFalse(success, "failed with msg: " + msg)
         self.chess.board[5, 7] = -1
         self.chess.in_turn = -1
         success, msg = self.chess.move((5, 3), (3, 7))
@@ -675,7 +678,7 @@ class TestChess(unittest.TestCase):
     def test_pawn_illegal_2move_blocked(self):
         self.chess.board[2, 1] = 1
         success, msg = self.chess.move((1, 1), (3, 1))
-        self.assertFalse(success)
+        self.assertFalse(success, "failed with msg: " + msg)
         self.chess.board[3, 3] = -1
         success, msg = self.chess.move((1, 3), (3, 3))
         self.assertFalse(success)
@@ -735,7 +738,7 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[1, 1] = 4  # Rook = 2
         self.empty_chess.board[7, 7] = -4  # enemy rook, to prevent game ending
         success, msg = self.empty_chess.move((1, 1), (2, 2))
-        self.assertTrue(success)
+        self.assertTrue(success, "failed with msg: " + msg)
         self.empty_chess.in_turn = 1
         success, msg = self.empty_chess.move((2, 2), (6, 6))
         self.assertTrue(success)
@@ -750,7 +753,7 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[2, 2] = -4
         self.empty_chess.in_turn = -1
         success, msg = self.empty_chess.move((2, 2), (4, 2))
-        self.assertFalse(success)
+        self.assertFalse(success, "failed with msg: " + msg)
         self.empty_chess.board[3, 3] = 1
         success, msg = self.empty_chess.move((2, 2), (4, 4))
         self.assertFalse(success)
@@ -760,7 +763,7 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[1, 1] = 2  # Bishop = 4
         self.empty_chess.board[7, 7] = -1  # enemy piece to prevent game ending
         success, msg = self.empty_chess.move((1, 1), (1, 2))
-        self.assertTrue(success)
+        self.assertTrue(success, "failed with msg: " + msg)
         self.empty_chess.in_turn = 1
         success, msg = self.empty_chess.move((1, 2), (1, 5))
         self.assertTrue(success)
@@ -775,7 +778,7 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[2, 2] = -2
         self.empty_chess.in_turn = -1
         success, msg = self.empty_chess.move((2, 2), (4, 3))
-        self.assertFalse(success)
+        self.assertFalse(success, "failed with msg: " + msg)
         self.empty_chess.board[2, 4] = 1
         success, msg = self.empty_chess.move((2, 2), (2, 5))
         self.assertFalse(success)
@@ -786,7 +789,7 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[7, 7] = 10  # enemy piece to prevent game ending
         self.empty_chess.in_turn = -1
         success, msg = self.empty_chess.move((2, 3), (5, 3))
-        self.assertTrue(success)
+        self.assertTrue(success, "failed with msg: " + msg)
         self.empty_chess.in_turn = -1
         success, msg = self.empty_chess.move((5, 3), (3, 1))
         self.assertTrue(success)
@@ -794,7 +797,7 @@ class TestChess(unittest.TestCase):
     def test_queen_illegal(self):
         self.empty_chess.board[2, 3] = 10
         success, msg = self.empty_chess.move((2, 3), (5, 4))
-        self.assertFalse(success)
+        self.assertFalse(success, "failed with msg: " + msg)
         self.empty_chess.board[2, 5] = -3
         success, msg = self.empty_chess.move((2, 3), (2, 6))
         self.assertFalse(success)
@@ -805,7 +808,7 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[1, 7] = 1  # enemy piece to prevent game ending
         self.empty_chess.in_turn = -1
         success, msg = self.empty_chess.move((2, 3), (3, 3))
-        self.assertTrue(success)
+        self.assertTrue(success, "failed with msg: " + msg)
         self.empty_chess.in_turn = -1
         success, msg = self.empty_chess.move((3, 3), (2, 2))
         self.assertTrue(success)
@@ -813,7 +816,7 @@ class TestChess(unittest.TestCase):
     def test_king_illegal(self):
         self.empty_chess.board[2, 3] = 100
         success, msg = self.empty_chess.move((2, 3), (5, 4))
-        self.assertFalse(success)
+        self.assertFalse(success, "failed with msg: " + msg)
         success, msg = self.empty_chess.move((2, 3), (2, 5))
         self.assertFalse(success)
 
@@ -823,14 +826,14 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[1, 1] = 1
         self.empty_chess.board[1, 7] = -10
         success, msg = self.empty_chess.move((1, 1), (2, 1))
-        self.assertFalse(success)
+        self.assertFalse(success, "failed with msg: " + msg)
 
     def test_illegal_in_check_move(self):
         self.empty_chess.board[1, 0] = 100
         self.empty_chess.board[0, 1] = 1
         self.empty_chess.board[1, 7] = -10
         success, msg = self.empty_chess.move((1, 1), (2, 1))
-        self.assertFalse(success)
+        self.assertFalse(success, "failed with msg: " + msg)
 
     # Test check mate
     def test_check_mate(self):
@@ -842,7 +845,7 @@ class TestChess(unittest.TestCase):
         self.assertTrue(in_progress)
         self.assertIsNone(winner)
         success, msg = self.empty_chess.move((2, 6), (0, 6))
-        self.assertTrue(success)
+        self.assertTrue(success, "failed with msg: " + msg)
         in_progress = self.empty_chess.is_in_progress
         winner = self.empty_chess.winner
         self.assertFalse(in_progress)
@@ -981,7 +984,7 @@ class TestChess(unittest.TestCase):
 
     def test_illegal_promotion(self):
         self.empty_chess.board[6, 0] = 1
-        success, msg = self.empty_chess.move((6, 0), (7, 0))
+        success, _ = self.empty_chess.move((6, 0), (7, 0))
         self.assertFalse(success, "Promotion move allowed without promotion argument")
 
 

@@ -1,5 +1,6 @@
 import copy
 
+
 import naught_util
 import ai_strats
 import numpy as np
