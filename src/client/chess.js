@@ -9,18 +9,15 @@ var webSocket;
 var moveInProgress;
 
 class Chess {
-    constructor(board, inTurn, humanPlayer){
+    constructor(humanPlayer, board){
         if (board === undefined){
             board = getStartBoard();
-        }
-        if (inTurn === undefined){
-            inTurn = 1;
         }
         if (humanPlayer === undefined){
             humanPlayer = 1;
         }
         this.board = board;
-        this.inTurn = inTurn;
+        this.inTurn = 1;
         this.humanPlayer = humanPlayer;
     }
 
@@ -145,8 +142,8 @@ function drawHtmlPieces(chess){ // should always call deleteHtmlPieces before
                 var pieceImg = document.createElement('img');
                 pieceImg.src = "resources/" + getPieceImageName(piece);
                 pieceImg.style.position = "absolute";
-                pieceImg.style.left = left + 0.5 * lineWidth + squareLength * (c + .5);
-                pieceImg.style.top = top + 0.5 * lineWidth + squareLength * (7.5 - r);
+                pieceImg.style.left = Math.round(left + 0.5 * lineWidth + squareLength * (c + .5));
+                pieceImg.style.top = Math.round(top + 0.5 * lineWidth + squareLength * (7.5 - r));
                 document.getElementById("chess_div_right").appendChild(pieceImg);
                 piece.htmlElement = pieceImg;
                 // console.log("End html null");
@@ -171,7 +168,7 @@ function enemyPieceEventHandler(event){
     }
     var htmlPiece = event.target;
     var piece = htmlPiece.piece;
-    console.log("r = " + piece.row + ", c = " + piece.column);
+    // console.log("r = " + piece.row + ", c = " + piece.column);
 
     if (selectedPiece != null){
         console.log("Attempt move");
@@ -187,7 +184,7 @@ function ownPieceEventHandler(event){
     }
     var htmlPiece = event.target;
     var piece = htmlPiece.piece;
-    console.log("r = " + piece.row + ", c = " + piece.column);
+    // console.log("r = " + piece.row + ", c = " + piece.column);
     if (selectedPiece != null){
         selectedPiece.htmlElement.style.outline = 'none';
     }
@@ -312,50 +309,58 @@ function getPieceImageName(piece){
 }
 
 function moveElementCell(element, r, c){
-    var toX = c * 80 + boardStartX; // + .5 * lineWidth;
-    var toY = (7 - r) * 80 + boardStartY; // + .5 * lineWidth;
+    var toX = Math.round(c * 80 + boardStartX);
+    var toY = Math.floor((7 - r) * 80 + boardStartY);
+    console.log("X: ", c * 80 + boardStartX);
+    console.log("Y: ", (7 - r) * 80 + boardStartY);
     moveElement(element, toX, toY);
 }
 
 function moveElement(element, toX, toY){
+    var factor = 3;
+    console.log("Xstyle: ", element.style.left);
+    console.log("Ystyle: ", element.style.top);
+    var startX = parseInt(element.style.left);
+    var startY = parseInt(element.style.top);
 
-    // // console.log("start moveElement");
-    // var startX = parseInt(element.style.left);
-    // var startY = parseInt(element.style.top);
+    element.style.top = toY;
+    element.style.left = toX;
+
+    // var xFactor = 1;
+    // var yFactor = 1;
+    // if (toX < startX){
+    //     xFactor = -1;
+    // }
+    // if (toY < startY){
+    //     yFactor = -1;
+    // }
     // var currentX = startX;
     // var currentY = startY;
-    // // console.log("toX: " + toX + ", startX = " + startX);
+    // console.log("toX: " + toX + ", startX = " + startX);
+    // console.log("toY: " + toY + ", startY = " + startY);
     // var xDist = toX - startX;
     // var yDist = toY - startY;
     // var dist = Math.sqrt(xDist * xDist + yDist * yDist)
     // // console.log("xdist = " + xDist + ", ydist = " + yDist + "dist = " + dist);
-    // var xDirection = xDist / dist;
-    // var yDirection = yDist / dist;
-    // var max = Math.ceil(dist);
-    // var count = 0;
-    // // console.log("Just before interval");
-    // var id = setInterval(frame, 1);
-    // // console.log("Just after interval");
+    // var xDirection = factor * xDist / dist;
+    // var yDirection = factor * yDist / dist;
+
+    // console.log("xcheck: ", xFactor * currentX, toX * xFactor);
+    // console.log("ycheck: ", yFactor * currentY, toY * yFactor);
+
+    // var id = setInterval(frame, 10);
     // function frame(){
-    //     // console.log("Start frame func");
-    //     if (count >= max){
-    //         // console.log("If");
-    //         clearInterval(id);
-    //     }
-    //     else {
-    //         // console.log("Else, currentX= " + parseInt(currentX) + ", currentY = " + parseInt(currentY));
-    //         count++;
+    //     if (xFactor * currentX < toX * xFactor || yFactor * currentY < toY * yFactor){
     //         currentX += xDirection;
     //         currentY += yDirection;
     //         element.style.left = parseInt(currentX);
     //         element.style.top = parseInt(currentY);
+    //     } else {
+    //         clearInterval(id);
+    //         element.style.top = toY;
+    //         element.style.left = toX;
     //     }
-    //     // clearInterval(id);
-    //     // console.log("end frame func");
     // }
-
-    element.style.top = toY;
-    element.style.left = toX;
 }
 /**
  * Draws chess board. Numbering and all.
