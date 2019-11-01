@@ -290,9 +290,20 @@ def is_in_check(board, player, king_pos=None):
 #     for i, row in enumerate(board):
 #         for j, piece in enumerate(row):
 #             if piece * player > 0:
-#                 # TODO Multi-thread
-#                 # TODO Stuff!
+#                 # TODO Multi-thread <- wtf did I mean by this
+#                 # TODO Stuff! <- Well that's a fucking useless message
 #                 pass
+
+class Move:
+    def __init__(self, frm, to, promote=None, castle=False, en_passant=False):
+        self.frm = frm
+        self.to = to
+        self.promote = promote
+        self.castle = castle
+        self.en_passant = en_passant
+
+        # if special is not None:
+        #     self.special = special
 
 
 class Chess:
@@ -303,7 +314,10 @@ class Chess:
         self.is_in_progress = True
         self.legal_moves = get_legal_moves(self.board, self.in_turn)
 
-    def move(self, frm, to, promote_to=None):
+    # def move(self, frm, to, promote_to=None):
+    def move(self, move):
+        frm = move.frm
+        to = move.to
         if not self.is_in_progress:
             return False, "Game already concluded"
         legal, msg = _is_legal_move(self.board, frm, to, self.in_turn)
@@ -314,11 +328,11 @@ class Chess:
         # TODO Handle castling and that other move
         need_promotion = (to[0] == 7 and self.board[frm] == 1) or (to[0] == 0 and self.board[frm] == -1)
         if need_promotion:
-            legal_promotions = [2, 3, 4, 10]
-            if promote_to in legal_promotions:
-                self.board[to] = promote_to * self.in_turn
+            legal_promotions = [1, 2, 3, 4, 10]
+            if move.promote is not None and move.promote in legal_promotions:
+                self.board[to] = move.promote * self.in_turn
             else:
-                return False, "Illegal choice for pawn promotion. ust be in [2, 3, 4, 10]. \n2 = rook, 3 = knight, 4 = bishop, 10 = queen"
+                return False, "Illegal choice for pawn promotion. Must be in [1, 2, 3, 4, 10]. \n1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 10 = queen"
         else:
             self.board[to] = self.board[frm]
         self.board[frm] = 0
@@ -333,7 +347,7 @@ class Chess:
         self.legal_moves = get_legal_moves(self.board, self.in_turn)
         checks, from_pos = is_in_check(self.board, self.in_turn)
         if checks:
-            if len(self.legal_moves) == 0:  # Checkmate
+            if len(self.legal_moves) == 0:  # No legal moves for player + in check -> Checkmate
                 winner = self.in_turn * -1  # Already changed turn, so winner was player in last turn
                 winner_string = "white" if winner == 1 else "black"
                 msg += ", Checkmate. Winner is " + winner_string
@@ -341,7 +355,7 @@ class Chess:
                 self.is_in_progress = False
             else:
                 msg += ", check from " + str(from_pos)
-        elif len(self.legal_moves) == 0:
+        elif len(self.legal_moves) == 0:  # No legal moves + not in check -> Game is a draw. Weird fucking rule. Forced into a no move position = draw -.-
             msg += ", no legal moves this turn. Game is a draw"
             self.is_in_progress = False
 
