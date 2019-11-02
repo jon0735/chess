@@ -27,12 +27,12 @@ class Chess {
             return;
         }
         if (!(special == undefined || special == null)){
-            console.log("Handle special move events (castle and that other one)");
+            console.log("TODO Handle special move events (castle and that other one)");
         }
         var movedPiece = this.board[rFrom][cFrom];
         var htmlElement = movedPiece.htmlElement;
         htmlElement.style.outline = 'none';
-        moveElementCell(this.board[rFrom][cFrom].htmlElement, rTo, cTo);
+        // moveElementCell(this.board[rFrom][cFrom].htmlElement, rTo, cTo);
         var toPiece = this.board[rTo][cTo];
         if (toPiece != null && toPiece.htmlElement != null){
              toPiece.htmlElement.parentNode.removeChild(toPiece.htmlElement);
@@ -43,6 +43,8 @@ class Chess {
         movedPiece.column = cTo;
         this.board[rTo][cTo] = movedPiece;
         selectedPiece = null;
+        moveElementCell(htmlElement, rTo, cTo);
+
     }
 }
 
@@ -141,6 +143,8 @@ function drawHtmlPieces(chess){ // should always call deleteHtmlPieces before
                 // console.log(getPieceImageName(piece));
                 var pieceImg = document.createElement('img');
                 pieceImg.src = "resources/" + getPieceImageName(piece);
+                pieceImg.style.transitionTimingFunction = "linear";
+                pieceImg.style.zIndex = 1;
                 pieceImg.style.position = "absolute";
                 pieceImg.style.left = Math.round(left + 0.5 * lineWidth + squareLength * (c + .5));
                 pieceImg.style.top = Math.round(top + 0.5 * lineWidth + squareLength * (7.5 - r));
@@ -183,6 +187,7 @@ function ownPieceEventHandler(event){
         return;
     }
     var htmlPiece = event.target;
+    htmlPiece.style.zIndex = 5;
     var piece = htmlPiece.piece;
     // console.log("r = " + piece.row + ", c = " + piece.column);
     if (selectedPiece != null){
@@ -190,6 +195,7 @@ function ownPieceEventHandler(event){
     }
     if (piece == selectedPiece) {
         selectedPiece = null;
+        htmlPiece.style.zIndex = 1;
         return;
     } 
     htmlPiece.style.outline = '2px solid red'
@@ -202,11 +208,11 @@ function boardEventHandler(event){
         console.log("Move in progress. Wait before doing more shit");
         return;
     }
-    console.log("Event " + event.clientX + " : " + event.clientY);
+    // console.log("Event " + event.clientX + " : " + event.clientY);
     var rect = event.target.getBoundingClientRect();
     var x = event.clientX - rect.left; //x position within the element.
     var y = event.clientY - rect.top;  //y position within the element.
-    console.log(x, y);
+    // console.log(x, y);
     if (event.clientX < boardStartX || event.clientY < boardStartY){
         return;
     }
@@ -220,10 +226,6 @@ function boardEventHandler(event){
     var rFrom = selectedPiece.row;
     var cFrom = selectedPiece.column;
     attemptMove(rFrom, cFrom, rTo, cTo);
-    // globalChess.move(rFrom, cFrom, rTo, cTo);
-    // meh = rowColumnToChessNotation(r, c);
-    // console.log(r, c);
-    // console.log(meh[0], meh[1]);
 }
 
 function rowColumnToChessNotation(row, column){
@@ -249,10 +251,12 @@ function attemptMove(rFrom, cFrom, rTo, cTo, special){
                       humanPlayer: globalChess.humanPlayer};
     var message = {move: move,
                    validation: validation}
-    webSocket.send(JSON.stringify(message));
+    // webSocket.send(JSON.stringify(message));
+    finishMove();
 }
 
 function finishMove(){
+    console.log("Finish move called")
     globalChess.move(moveInProgress.rFrom, moveInProgress.cFrom, moveInProgress.rTo, moveInProgress.cTo, moveInProgress.special);
     waiting = false;
     console.log("TODO: finish move stuff");
@@ -309,6 +313,7 @@ function getPieceImageName(piece){
 }
 
 function moveElementCell(element, r, c){
+    console.log("MoveElementCell called", r, c);
     var toX = Math.round(c * 80 + boardStartX);
     var toY = Math.floor((7 - r) * 80 + boardStartY);
     console.log("X: ", c * 80 + boardStartX);
@@ -317,51 +322,24 @@ function moveElementCell(element, r, c){
 }
 
 function moveElement(element, toX, toY){
-    var factor = 3;
-    console.log("Xstyle: ", element.style.left);
-    console.log("Ystyle: ", element.style.top);
+    // console.log("MoveElement called", toX, toY);
     var startX = parseInt(element.style.left);
     var startY = parseInt(element.style.top);
-
+    var xDist = toX - startX;
+    var yDist = toY - startY;
+    var dist = Math.sqrt(xDist * xDist + yDist * yDist)
+    var animationTime = Math.floor(dist/.8);
+    // console.log(dist/800)
+    element.style.transitionTimingFunction = "linear";
+    element.style.transitionDuration = "" + animationTime + "ms"; // dist/800 -> 0.1s per square (80px) ish
     element.style.top = toY;
     element.style.left = toX;
-
-    // var xFactor = 1;
-    // var yFactor = 1;
-    // if (toX < startX){
-    //     xFactor = -1;
-    // }
-    // if (toY < startY){
-    //     yFactor = -1;
-    // }
-    // var currentX = startX;
-    // var currentY = startY;
-    // console.log("toX: " + toX + ", startX = " + startX);
-    // console.log("toY: " + toY + ", startY = " + startY);
-    // var xDist = toX - startX;
-    // var yDist = toY - startY;
-    // var dist = Math.sqrt(xDist * xDist + yDist * yDist)
-    // // console.log("xdist = " + xDist + ", ydist = " + yDist + "dist = " + dist);
-    // var xDirection = factor * xDist / dist;
-    // var yDirection = factor * yDist / dist;
-
-    // console.log("xcheck: ", xFactor * currentX, toX * xFactor);
-    // console.log("ycheck: ", yFactor * currentY, toY * yFactor);
-
-    // var id = setInterval(frame, 10);
-    // function frame(){
-    //     if (xFactor * currentX < toX * xFactor || yFactor * currentY < toY * yFactor){
-    //         currentX += xDirection;
-    //         currentY += yDirection;
-    //         element.style.left = parseInt(currentX);
-    //         element.style.top = parseInt(currentY);
-    //     } else {
-    //         clearInterval(id);
-    //         element.style.top = toY;
-    //         element.style.left = toX;
-    //     }
-    // }
+    setTimeout(() =>{
+        element.style.zIndex = 1;
+        element.style.transitionDuration = "0s";
+    }, animationTime);
 }
+
 /**
  * Draws chess board. Numbering and all.
  * @param {Canvas} canvas Pretty self explanatory
