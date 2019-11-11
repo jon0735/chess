@@ -11,26 +11,68 @@ def _is_outside_board(pos):
         return False
 
 
-def _is_legal_pawn_move(board, frm, to):
+def _is_legal_pawn_move(board, move):
+    frm = move.frm
+    to = move.to
     if abs(board[frm]) != 1:
         return False, "This should never ever fucking happen. is_legal_pawn_move called for non-pawn"
     player = board[frm]
-    dist = np.subtract(frm, to)
+    dist = np.subtract(to, frm)  # dist = np.subtract(frm, to)
     vertical = dist[0]
     horizontal = dist[1]
-    if vertical == player * -1:
-        if horizontal == 0 and board[to] == 0:
-            return True, "Standard pawn move"
-        elif (horizontal == -1 or horizontal == 1) and board[to]/board[frm] < 0:
-            return True, "Attacking pawn move"
+    #  Beautiful mother of if-statements (sarcasm).
+    if vertical * player == 1:  # Single square forward
+        if abs(horizontal) == 0:  # Completely standard move
+            if board[to] != 0:  # Non-empty 'to' square for non attack move
+                return False, "Illegal pawn move"
+        elif abs(horizontal) == 1:  # Attack move
+            if player * board[to] >= 0:  # Own or empty spot -> Illegal as this should be an attack move
+                return False, "Illegal pawn move"
         else:
             return False, "Illegal pawn move"
-    elif vertical == player * -2 and ((player == 1 and frm[0] == 1) or (player == -1 and frm[0] == 6)):
-        if horizontal == 0 and board[to] == 0 and board[frm[0] + player, frm[1]] == 0:
-            return True, "Double pawn move"
-        else:
+    elif vertical * player == 2:  # Double move
+        if horizontal != 0:
             return False, "Illegal pawn move"
-    return False, "Illegal pawn move"
+        if (frm[0] != 1 and player == 1) or (frm[0] != 6 and player == -1):
+            return False, "Illegal pawn move"
+        if board[to] != 0 or board[frm[0] + player, frm[1]] != 0:
+            return False, "Illegal pawn move" 
+    else: 
+        return False, "Illegal pawn move"
+    to_row = to[0]
+    if move.promote is not None:
+        if to_row not in [0, 7]:
+            return False, "Cannot promote pawn if pawn does not move to enemy backline"
+        if move.promote not in [1, 2, 3, 4, 10]:
+            return False, "Illegal choice for pawn promotion. Must be in [1, 2, 3, 4, 10]. \n1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 10 = queen"
+    else:
+        if to_row in [0, 7]:
+            return False, "Illegal choice for pawn promotion. Must be in [1, 2, 3, 4, 10]. \n1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 10 = queen"
+    return True, "Legal pawn move"
+    # if vertical * player not in [1, 2] or abs(horizontal) not in [0, 1]:
+    #     return False, "Illegal pawn move"
+
+    # if vertical == player * -1:
+    #     if horizontal == 0 and board[to] == 0:
+    #         return True, "Standard pawn move"
+    #     elif (horizontal == -1 or horizontal == 1) and board[to]/board[frm] < 0:
+    #         return True, "Attacking pawn move"
+    #     else:
+    #         return False, "Illegal pawn move"
+    # elif vertical == player * -2 and ((player == 1 and frm[0] == 1) or (player == -1 and frm[0] == 6)):
+    #     if horizontal == 0 and board[to] == 0 and board[frm[0] + player, frm[1]] == 0:
+    #         return True, "Double pawn move"
+    #     else:
+    #         return False, "Illegal pawn move"
+    # return False, "Illegal pawn move"
+
+# def _is_legal_promotion_move(board, move):
+#     if move.promote not in [1, 2, 3, 4, 10]:
+#         return False, "Illegal choice for pawn promotion. Must be in [1, 2, 3, 4, 10]. \n1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 10 = queen"
+#     to = move.to
+#     if to[0] not in [0, 7]:
+#         return False, "Illegal 'to' position for promotion move"
+#     return _is_legal_pawn_move(board, move)
 
 
 def _is_legal_bishop_move(board, frm, to):
@@ -84,8 +126,34 @@ def _is_legal_king_move(board, frm, to):
         return False, "Illegal king move"
     return True, "Legal king move"
 
+def _is_legal_castling(chess, move):
+    frm = move.frm
+    to = move.to
+    board = chess.board
+    if abs(board[frm]) != 100:
+        return False, "Can only castle with King"
+    if frm == (0, 4) or frm == (7, 4):
+        row = frm[0]
+        if to == (row, 2):
+            if not (board[row, 1] == 0 and board[row, 3] == 0): #  If board[0, 2] != 0 it will fail on a check for same piece on 'to' location
+                return False, "Castling blocked by piece(s) between rook and king"
+        elif to == (row, 6):
+            if not (board[row, 5] == 0):
+                return False, "Castling blocked by piece(s) between rook and king"
+        else:
+            return False, "Illegal 'to' position for castling move"
+    else:
+        return False, "Illegal king location for castling"
+    player = board[frm] / 100
+    in_check, pos = is_in_check(chess, player, king_pos=frm)
+    if in_check:
+        return False, "Cannot castle if king is in check. Check from " + str(pos)
+    return True, "Legal"
 
-def _is_legal_move(board, frm, to, in_turn):
+def _is_legal_move(chess, move, in_turn):
+    board = chess.board
+    frm = move.frm
+    to = move.to
     # General checks
     if _is_outside_board(frm):
         return False, "\"frm\" pos outside board"
@@ -99,11 +167,18 @@ def _is_legal_move(board, frm, to, in_turn):
     if in_turn != owner:
         return False, "Wrong player in turn"
     if board[to]/board[frm] > 0:
-        # TODO Check for castling
         return False, "Illegal move; trying to move to own piece"
     # Specific piece type checks
+    if move.castle:
+        if move.en_passant or move.promote is not None:
+            return False, "Move can only take one of castling, en-passant or promotion arguments"
+        return _is_legal_castling(chess, move)
+    if move.promote is not None and (move.castle or move.en_passant):
+        return False, "Move can only take one of castling, en-passant or promotion arguments"
+    if move.en_passant and (move.castle or move.promote is not None):
+        return False, "Move can only take one of castling, en-passant or promotion arguments"
     if piece_type == 1:
-        return _is_legal_pawn_move(board, frm, to)
+        return _is_legal_pawn_move(board, move)
     elif piece_type == 2:
         return _is_legal_rook_move(board, frm, to)
     elif piece_type == 3:
@@ -198,7 +273,7 @@ def _get_legal_queen_moves(board, pos):
     bishop_moves = _get_legal_bishop_moves(board, pos)
     return rook_moves + bishop_moves
 
-
+# Does NOT handle castling
 def _get_legal_king_moves(board, pos):
     player = 1 if board[pos] > 0 else -1
     moves = []
@@ -215,7 +290,8 @@ def _get_legal_king_moves(board, pos):
     return moves
 
 
-def get_legal_moves(board, player):
+def get_legal_moves(chess, player):
+    board = chess.board
     moves = []
     for i, row in enumerate(board):
         for j, piece in enumerate(row):
@@ -236,24 +312,25 @@ def get_legal_moves(board, player):
                 else:
                     raise ValueError("Is_legal_move error: piece_type: ", piece_type, ", not recognised")
     legal_moves = []
-    testing_board = copy.deepcopy(board)
-    king_pos = _find_king(testing_board, player)
+    testing_chess = copy.deepcopy(chess)
+    # testing_board = copy.deepcopy(board)
+    king_pos = _find_king(testing_chess.board, player)
     for (frm, to) in moves:
         # TODO handle castling
         # TODO handle that weird pawn move
         old_to = board[to]
         old_frm = board[frm]
-        testing_board[to] = old_frm
-        testing_board[frm] = 0
+        testing_chess.board[to] = old_frm
+        testing_chess.board[frm] = 0
         if old_frm * player == 100:
-            self_in_check, _ = is_in_check(testing_board, player, king_pos=to)
+            self_in_check, _ = is_in_check(testing_chess, player, king_pos=to)
         else:
-            self_in_check, _ = is_in_check(testing_board, player, king_pos=king_pos)
+            self_in_check, _ = is_in_check(testing_chess, player, king_pos=king_pos)
         # self_in_check, _ = is_in_check(testing_board, player)
         if not self_in_check:
             legal_moves.append((frm, to))
-        testing_board[frm] = old_frm
-        testing_board[to] = old_to
+        testing_chess.board[frm] = old_frm
+        testing_chess.board[to] = old_to
     return legal_moves
 
 
@@ -267,7 +344,8 @@ def _find_king(board, player):
     return king_pos
 
 
-def is_in_check(board, player, king_pos=None):
+def is_in_check(chess, player, king_pos=None):
+    board = chess.board
     if king_pos is None:
         king_pos = _find_king(board, player)
     if king_pos is None:  # No king found -> no king in board -> big error or testing scenario
@@ -275,7 +353,7 @@ def is_in_check(board, player, king_pos=None):
     for i, row in enumerate(board):
         for j, piece in enumerate(row):
             if piece * player < 0:  # This means the piece is the opponents.
-                legal, msg = _is_legal_move(board, (i, j), king_pos, player * -1)
+                legal, msg = _is_legal_move(chess, Move((i, j), king_pos), player * -1)
                 if legal:
                     return True, (i, j)
     return False, None
@@ -312,7 +390,13 @@ class Chess:
         self.in_turn = 1
         self.winner = None
         self.is_in_progress = True
-        self.legal_moves = get_legal_moves(self.board, self.in_turn)
+        self.legal_moves = get_legal_moves(self, self.in_turn)
+        self.last_move = None
+        # Castling bools inelegant
+        self.white_left_castling = True
+        self.white_right_castling = True
+        self.black_left_castling = True
+        self.black_right_castling = True
 
     # def move(self, frm, to, promote_to=None):
     def move(self, move):
@@ -320,32 +404,44 @@ class Chess:
         to = move.to
         if not self.is_in_progress:
             return False, "Game already concluded"
-        legal, msg = _is_legal_move(self.board, frm, to, self.in_turn)
+        legal, msg = _is_legal_move(self, move, self.in_turn)
         if not legal:
             return False, msg
-        old_frm = self.board[frm]
-        old_to = self.board[to]
-        # TODO Handle castling and that other move
-        need_promotion = (to[0] == 7 and self.board[frm] == 1) or (to[0] == 0 and self.board[frm] == -1)
-        if need_promotion:
-            legal_promotions = [1, 2, 3, 4, 10]
-            if move.promote is not None and move.promote in legal_promotions:
-                self.board[to] = move.promote * self.in_turn
-            else:
-                return False, "Illegal choice for pawn promotion. Must be in [1, 2, 3, 4, 10]. \n1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 10 = queen"
-        else:
-            self.board[to] = self.board[frm]
+
+        backup_board = copy.deepcopy(self.board)  # backup to rollback if move puts player in check
+
+        self.board[to] = self.board[frm]
         self.board[frm] = 0
 
-        is_checked, from_pos = is_in_check(self.board, self.in_turn)
+        if move.promote is not None and move.promote in [1, 2, 3, 4, 10]:
+            self.board[to] = move.promote * self.in_turn
+        if move.castle:
+            if to == (0, 2):
+                self.board[0, 3] = 2
+                self.board[0, 0] = 0
+            elif to == (0, 6):
+                self.board[0, 5] = 2
+                self.board[0, 7] = 0
+            elif to == (7, 2):
+                self.board[7, 3] = -2
+                self.board[7, 0] = 0
+            elif to == (7, 6):
+                self.board[7, 5] = -2
+                self.board[7, 7] = 0
+
+
+        is_checked, from_pos = is_in_check(self, self.in_turn)
         if is_checked:
             # TODO handle castling and other move
-            self.board[to] = old_to
-            self.board[frm] = old_frm
+            # self.board[to] = old_to
+            # self.board[frm] = old_frm
+            self.board = backup_board
             return False, ("Illegal move due to check from pos " + str(from_pos))
+
+        
         self.in_turn = self.in_turn * -1
-        self.legal_moves = get_legal_moves(self.board, self.in_turn)
-        checks, from_pos = is_in_check(self.board, self.in_turn)
+        self.legal_moves = get_legal_moves(self, self.in_turn)
+        checks, from_pos = is_in_check(self, self.in_turn)
         if checks:
             if len(self.legal_moves) == 0:  # No legal moves for player + in check -> Checkmate
                 winner = self.in_turn * -1  # Already changed turn, so winner was player in last turn
