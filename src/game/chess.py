@@ -132,23 +132,54 @@ def _is_legal_castling(chess, move):
     board = chess.board
     if abs(board[frm]) != 100:
         return False, "Can only castle with King"
+    player = board[frm] / 100
     if frm == (0, 4) or frm == (7, 4):
-        row = frm[0]
-        if to == (row, 2):
+        row = frm[0]  # 0 if white move, 7 if black. Using this variable allows using same code for both colors below
+        if to == (row, 2):  # If castling left
             if not (board[row, 1] == 0 and board[row, 3] == 0): #  If board[0, 2] != 0 it will fail on a check for same piece on 'to' location
                 return False, "Castling blocked by piece(s) between rook and king"
-        elif to == (row, 6):
-            if not (board[row, 5] == 0):
+            is_attacked, _ = is_in_check(chess, player, king_pos=(row, 3))
+            if is_attacked:
+                return False, "King moves through attacked pos"
+        elif to == (row, 6):  # If castling right
+            if not (board[row, 5] == 0):  #  If board[0, 6] != 0 it will fail on a check for same piece on 'to' location
                 return False, "Castling blocked by piece(s) between rook and king"
+            is_attacked, _ = is_in_check(chess, player, king_pos=(row, 5))
+            if is_attacked:
+                return False, "King moves through attacked pos"
         else:
             return False, "Illegal 'to' position for castling move"
     else:
         return False, "Illegal king location for castling"
-    player = board[frm] / 100
+    if (not chess.legal_castles[to]):
+        return False, "Illegal castle due to previous rook or king movement"
     in_check, pos = is_in_check(chess, player, king_pos=frm)
     if in_check:
         return False, "Cannot castle if king is in check. Check from " + str(pos)
     return True, "Legal"
+
+def _is_legal_en_passant(chess, move):
+    frm  = move.frm
+    to = move.to
+    if abs(chess.board[frm]) != 1:
+        return False, "En Passant only possible for pawns"
+    player = chess.in_turn  # Inconsistant with how I do it other places
+    if player == 1:
+        if frm[0] != 4:
+            return False, "Illegal En Passant"
+    else:
+        if frm[0] != 3:
+            return False, "Illegal En Passant"
+    
+    if not (to == (frm[0] + player, frm[1] + 1) or to == (frm[0] + player, frm[1] - 1)):
+        return False, "Illegal En Passant"
+    last_move = chess.last_move
+    if not (last_move.frm == (to[0] + player, to[1]) and last_move.to == (to[0] - player, to[1])):
+        return False, "Illegal En Passant"
+    if chess.board[chess.last_move.to] * player != -1:
+        return False, "Last move was not made by pawn"
+    return True, "Legal En Passant"
+
 
 def _is_legal_move(chess, move, in_turn):
     board = chess.board
@@ -175,8 +206,10 @@ def _is_legal_move(chess, move, in_turn):
         return _is_legal_castling(chess, move)
     if move.promote is not None and (move.castle or move.en_passant):
         return False, "Move can only take one of castling, en-passant or promotion arguments"
-    if move.en_passant and (move.castle or move.promote is not None):
-        return False, "Move can only take one of castling, en-passant or promotion arguments"
+    if move.en_passant: 
+        if move.castle or move.promote is not None:
+            return False, "Move can only take one of castling, en-passant or promotion arguments"
+        return _is_legal_en_passant(chess, move)
     if piece_type == 1:
         return _is_legal_pawn_move(board, move)
     elif piece_type == 2:
@@ -380,9 +413,6 @@ class Move:
         self.castle = castle
         self.en_passant = en_passant
 
-        # if special is not None:
-        #     self.special = special
-
 
 class Chess:
     def __init__(self):
@@ -393,12 +423,8 @@ class Chess:
         self.legal_moves = get_legal_moves(self, self.in_turn)
         self.last_move = None
         # Castling bools inelegant
-        self.white_left_castling = True
-        self.white_right_castling = True
-        self.black_left_castling = True
-        self.black_right_castling = True
+        self.legal_castles = {(0, 2) : True, (0, 6) : True, (7, 2) : True, (7, 6) : True}
 
-    # def move(self, frm, to, promote_to=None):
     def move(self, move):
         frm = move.frm
         to = move.to
@@ -428,7 +454,8 @@ class Chess:
             elif to == (7, 6):
                 self.board[7, 5] = -2
                 self.board[7, 7] = 0
-
+        if move.en_passant:
+            self.board[to[0] - self.in_turn, to[1]] = 0
 
         is_checked, from_pos = is_in_check(self, self.in_turn)
         if is_checked:
@@ -454,6 +481,21 @@ class Chess:
         elif len(self.legal_moves) == 0:  # No legal moves + not in check -> Game is a draw. Weird fucking rule. Forced into a no move position = draw -.-
             msg += ", no legal moves this turn. Game is a draw"
             self.is_in_progress = False
-
+        self.last_move = move
+        # Feels ugly and shitty
+        if frm == (0, 4):
+            self.legal_castles[(0, 2)] = False
+            self.legal_castles[(0, 6)] = False
+        elif frm == (0, 0):
+            self.legal_castles[(0, 2)] = False
+        elif frm == (0, 7):
+            self.legal_castles[(0, 6)] = False
+        elif frm == (7, 4):
+            self.legal_castles[(7, 2)] = False
+            self.legal_castles[(7, 6)] = False
+        elif frm == (7, 0):
+            self.legal_castles[(7, 2)] = False
+        elif frm == (7, 7):
+            self.legal_castles[(7, 6)] = False
         return True, msg
 

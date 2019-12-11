@@ -251,8 +251,8 @@ function attemptMove(rFrom, cFrom, rTo, cTo, special){
                       humanPlayer: globalChess.humanPlayer};
     var message = {move: move,
                    validation: validation}
-    // webSocket.send(JSON.stringify(message));
-    finishMove();
+    webSocket.send(JSON.stringify(message));
+    // finishMove();
 }
 
 function finishMove(){
