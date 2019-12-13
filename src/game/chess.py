@@ -151,7 +151,7 @@ def _is_legal_castling(chess, move):
             return False, "Illegal 'to' position for castling move"
     else:
         return False, "Illegal king location for castling"
-    if (not chess.legal_castles[to]):
+    if (not chess.legal_castles[str(to)]):
         return False, "Illegal castle due to previous rook or king movement"
     in_check, pos = is_in_check(chess, player, king_pos=frm)
     if in_check:
@@ -415,15 +415,25 @@ class Move:
 
 
 class Chess:
-    def __init__(self):
-        self.board = chess_util.get_start_board()
-        self.in_turn = 1
-        self.winner = None
-        self.is_in_progress = True
-        self.legal_moves = get_legal_moves(self, self.in_turn)
-        self.last_move = None
-        # Castling bools inelegant
-        self.legal_castles = {(0, 2) : True, (0, 6) : True, (7, 2) : True, (7, 6) : True}
+    def __init__(self, set_start_params=True):
+        if set_start_params:
+            self.board = chess_util.get_start_board()
+            self.in_turn = 1
+            self.turn_num = 1
+            self.is_in_progress = True
+            self.winner = None
+            self.legal_moves = get_legal_moves(self, self.in_turn) # Make function just for start, to reduce init time
+            self.last_move = None
+            self.legal_castles = {'(0, 2)' : True, '(0, 6)' : True, '(7, 2)' : True, '(7, 6)' : True}
+        else: # Low cost init if one needs to reset everything anyway
+            self.board = None
+            self.in_turn = None
+            self.turn_num = None
+            self.is_in_progress = None
+            self.winner = None
+            self.legal_moves = None
+            self.last_move = None
+            self.legal_castles = None
 
     def move(self, move):
         frm = move.frm
@@ -465,7 +475,7 @@ class Chess:
             self.board = backup_board
             return False, ("Illegal move due to check from pos " + str(from_pos))
 
-        
+        self.turn_num += 1
         self.in_turn = self.in_turn * -1
         self.legal_moves = get_legal_moves(self, self.in_turn)
         checks, from_pos = is_in_check(self, self.in_turn)
@@ -484,18 +494,18 @@ class Chess:
         self.last_move = move
         # Feels ugly and shitty
         if frm == (0, 4):
-            self.legal_castles[(0, 2)] = False
-            self.legal_castles[(0, 6)] = False
+            self.legal_castles['(0, 2)'] = False
+            self.legal_castles['(0, 6)'] = False
         elif frm == (0, 0):
-            self.legal_castles[(0, 2)] = False
+            self.legal_castles['(0, 2)'] = False
         elif frm == (0, 7):
-            self.legal_castles[(0, 6)] = False
+            self.legal_castles['(0, 6)'] = False
         elif frm == (7, 4):
-            self.legal_castles[(7, 2)] = False
-            self.legal_castles[(7, 6)] = False
+            self.legal_castles['(7, 2)'] = False
+            self.legal_castles['(7, 6)'] = False
         elif frm == (7, 0):
-            self.legal_castles[(7, 2)] = False
+            self.legal_castles['(7, 2)'] = False
         elif frm == (7, 7):
-            self.legal_castles[(7, 6)] = False
+            self.legal_castles['(7, 6)'] = False
         return True, msg
 

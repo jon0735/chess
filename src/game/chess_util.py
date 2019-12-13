@@ -1,12 +1,14 @@
 import numpy as np
 
 
-def get_start_board():
+def get_start_board(efficient=True):
     board = np.zeros((8, 8), dtype='i1')
     board[7] = np.array([-2, -3, -4, -10, -100, -4, -3, -2], dtype='i1')
     board[6] = np.ones(8, dtype='i1') * -1
     board[1] = np.ones(8, dtype='i1')
     board[0] = np.array([2, 3, 4, 10, 100, 4, 3, 2], dtype='i1')
+    if not efficient:
+        return board.tolist()
     return board
 
 
