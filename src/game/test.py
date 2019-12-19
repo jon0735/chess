@@ -1,21 +1,24 @@
-# import sys
+import sys
+# print(sys.path)
 # sys.path.append("..")
 
-import chess_util
-import chess
-from chess import Chess
-from chess import Move
-from naught_cross import NaughtCross
-from ai import NaughtAI
-from tree import Node
-from nc_nn import NaughtCrossNeuralNet as NN
 
+from chess.chess import Chess
+from chess.chess import Move
+from naught_cross.naught_cross import NaughtCross
+from ai.ai import NaughtAI
+from ai.tree import Node
+from ai.nc_nn import NaughtCrossNeuralNet as NN
+
+import naught_cross.naught_util as naught_util
+import ai.nn_util as nn_util
+import ai.ai_strats as ai_strats
+import chess.chess_util as chess_util
+import chess.chess as chess
+
+import copy
 import unittest
 import numpy as np
-import naught_util
-import copy
-import nn_util
-import ai_strats
 
 empty_nc_board = naught_util.get_empty_char_board()
 x_win_nc_board = np.array([['X', 'X', 'X'], ['O', 'O', ' '], [' ', ' ', ' ']])
@@ -611,19 +614,9 @@ class TestChess(unittest.TestCase):
         self.assertEqual(self.chess.board[5, 3], -1)
 
     def test_pawn_double(self):
-        # chess_util.print_board(self.chess.board)
-        # print("legal moves:")
-        # print(self.chess.legal_moves)
         success, msg = self.chess.move(Move((1, 2), (3, 2)))
-        # chess_util.print_board(self.chess.board)
-        # print("legal moves:")
-        # print(self.chess.legal_moves)
         self.assertTrue(success, msg)
         success, msg = self.chess.move(Move((6, 2), (4, 2)))
-        # chess_util.print_board(self.chess.board)
-        # print("legal moves:")
-        # print(self.chess.legal_moves)
-        # print(self.chess.winner)
         self.assertTrue(success, msg)
 
     def test_illegal_white_pawn_move(self):
@@ -634,16 +627,12 @@ class TestChess(unittest.TestCase):
         self.chess.in_turn = -1
         success, msg = self.chess.move(Move((6, 2), (3, 2)))
         self.assertFalse(success)
-        # self.assertEqual(msg, "Illegal pawn move")
         success, msg = self.chess.move(Move((6, 7), (5, 6)))
         self.assertFalse(success)
-        # self.assertEqual(msg, "Illegal pawn move")
         success, msg = self.chess.move(Move((6, 3), (3, 2)))
         self.assertFalse(success)
-        # self.assertEqual(msg, "Illegal pawn move")
         success, msg = self.chess.move(Move((6, 2), (3, 2)))
         self.assertFalse(success)
-        # self.assertEqual(msg, "Illegal pawn move")
 
     def test_backwards_pawn_move(self):
         self.chess.board = chess_util.get_empty_board()
@@ -651,7 +640,6 @@ class TestChess(unittest.TestCase):
         self.chess.board[5, 4] = -1
         success, msg = self.chess.move(Move((3, 3), (2, 3)))
         self.assertFalse(success)
-        # self.assertEqual(msg, "Illegal pawn move")
         self.chess.in_turn = -1
         success, msg = self.chess.move(Move((5, 4), (5, 4)))
         self.assertFalse(success)
@@ -680,10 +668,12 @@ class TestChess(unittest.TestCase):
     def test_pawn_illegal_double_move_blocked(self):
         self.chess.board[2, 1] = 1
         success, msg = self.chess.move(Move((1, 1), (3, 1)))
-        self.assertFalse(success, "failed with msg: " + msg)
+        self.assertFalse(success, "Pawn allowed to perform double move when middle is blocked: " + msg)
+
+    def test_pawn_illegal_double_move_attack(self):
         self.chess.board[3, 3] = -1
         success, msg = self.chess.move(Move((1, 3), (3, 3)))
-        self.assertFalse(success)
+        self.assertFalse(success, "Pawn double move attack allowed")
 
     # Test Knights beneath
     def test_white_knight_move(self):
@@ -995,7 +985,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[0, 1] = 0
         self.chess.board[0, 2] = 0
         self.chess.board[0, 3] = 0
-        success, _ = self.chess.move(Move((0, 4), (0, 2), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 2)))
         self.assertTrue(success, "Legal castling move not allowed")
         self.assertEqual(self.chess.board[0, 2], 100, "King not in correct position after castling left")
         self.assertEqual(self.chess.board[0, 3], 2, "Rook not in correct position after castling left")
@@ -1004,7 +994,7 @@ class TestChess(unittest.TestCase):
     def test_white_right_castle(self):
         self.chess.board[0, 6] = 0
         self.chess.board[0, 5] = 0
-        success, m = self.chess.move(Move((0, 4), (0, 6), castle=True))
+        success, m = self.chess.move(Move((0, 4), (0, 6)))
         self.assertTrue(success, "Legal castling move not allowed with message: " + m)
         self.assertEqual(self.chess.board[0, 6], 100, "King not in correct position after castling left")
         self.assertEqual(self.chess.board[0, 5], 2, "Rook not in correct position after castling left")
@@ -1015,7 +1005,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[7, 2] = 0
         self.chess.board[7, 3] = 0
         self.chess.in_turn = -1
-        success, _ = self.chess.move(Move((7, 4), (7, 2), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 2)))
         self.assertTrue(success, "Legal castling move not allowed")
         self.assertEqual(self.chess.board[7, 2], -100, "King not in correct position after castling left")
         self.assertEqual(self.chess.board[7, 3], -2, "Rook not in correct position after castling left")
@@ -1025,7 +1015,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[7, 6] = 0
         self.chess.board[7, 5] = 0
         self.chess.in_turn = -1
-        success, _ = self.chess.move(Move((7, 4), (7, 6), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 6)))
         self.assertTrue(success, "Legal castling move not allowed")
         self.assertEqual(self.chess.board[7, 6], -100, "King not in correct position after castling left")
         self.assertEqual(self.chess.board[7, 5], -2, "Rook not in correct position after castling left")
@@ -1036,66 +1026,66 @@ class TestChess(unittest.TestCase):
     # Illegal Castling
 
     def test_illegal_castling_wrong_piece(self):
-        success, _ = self.chess.move(Move((0, 2), (0, 3), castle=True))
+        success, _ = self.chess.move(Move((0, 2), (0, 3)))
         self.assertFalse(success)
 
     def test_illegal_castling_blocked(self):  # Very basic. Move illegal due to moving to own piece
-        success, _ = self.chess.move(Move((0, 4), (0, 2), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 2)))
         self.assertFalse(success, "Castling to (0, 2) allowed even though squares between king and rook are blocked")
-        success, _ = self.chess.move(Move((0, 4), (0, 6), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 6)))
         self.assertFalse(success, "Castling to (0, 6) allowed even though squares between king and rook are blocked")
         self.chess.in_turn = -1
-        success, _ = self.chess.move(Move((7, 4), (7, 2), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 2)))
         self.assertFalse(success, "Castling to (7, 2) allowed even though squares between king and rook are blocked")
-        success, _ = self.chess.move(Move((7, 4), (7, 6), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 6)))
         self.assertFalse(success, "Castling to (7, 6) allowed even though squares between king and rook are blocked")
 
     def test_illegal_castling_blocked_white_left(self): 
         self.chess.board[0, 2] = 0
-        success, _ = self.chess.move(Move((0, 4), (0, 2), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 2)))
         self.assertFalse(success, "Castling to (0, 2) allowed even though squares between king and rook are blocked")
 
     def test_illegal_castling_blocked_white_left2(self):
         self.chess.board[0, 2] = 0
         self.chess.board[0, 3] = 0
-        success, _ = self.chess.move(Move((0, 4), (0, 2), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 2)))
         self.assertFalse(success, "Castling to (0, 2) allowed even though squares between king and rook are blocked")
 
     def test_illegal_castling_blocked_white_left3(self):  
         self.chess.board[0, 2] = 0
         self.chess.board[0, 1] = 0
-        success, _ = self.chess.move(Move((0, 4), (0, 2), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 2)))
         self.assertFalse(success, "Castling to (0, 2) allowed even though squares between king and rook are blocked")
 
     def test_illegal_castling_blocked_white_right(self):  
         self.chess.board[0, 6] = 0
-        success, _ = self.chess.move(Move((0, 4), (0, 6), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 6)))
         self.assertFalse(success, "Castling to (0, 6) allowed even though squares between king and rook are blocked")
     
     def test_illegal_castling_blocked_black_left(self): 
         self.chess.in_turn = -1
         self.chess.board[7, 2] = 0
-        success, _ = self.chess.move(Move((7, 4), (7, 2), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 2)))
         self.assertFalse(success, "Castling to (7, 2) allowed even though squares between king and rook are blocked")
 
     def test_illegal_castling_blocked_black_left2(self): 
         self.chess.in_turn = -1
         self.chess.board[7, 2] = 0
         self.chess.board[7, 3] = 0
-        success, _ = self.chess.move(Move((7, 4), (7, 2), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 2)))
         self.assertFalse(success, "Castling to (7, 2) allowed even though squares between king and rook are blocked")
 
     def test_illegal_castling_blocked_black_left3(self):  
         self.chess.in_turn = -1
         self.chess.board[7, 2] = 0
         self.chess.board[7, 1] = 0
-        success, _ = self.chess.move(Move((7, 4), (7, 2), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 2)))
         self.assertFalse(success, "Castling to (7, 2) allowed even though squares between king and rook are blocked")
 
     def test_illegal_castling_blocked_black_right(self):  
         self.chess.in_turn = -1
         self.chess.board[7, 6] = 0
-        success, _ = self.chess.move(Move((7, 4), (7, 6), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 6)))
         self.assertFalse(success, "Castling to (7, 6) allowed even though squares between king and rook are blocked")
 
     def test_illegal_castle_check_white(self):
@@ -1103,7 +1093,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[1, 4] = 0
         self.chess.board[0, 5] = 0
         self.chess.board[0, 6] = 0
-        success, _ = self.chess.move(Move((0, 4), (0, 6), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 6)))
         self.assertFalse(success, "Castling allowed even though king is in check")
 
     def test_illegal_castle_check_black(self):
@@ -1112,7 +1102,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[7, 5] = 0
         self.chess.board[7, 6] = 0
         self.chess.in_turn = -1
-        success, _ = self.chess.move(Move((7, 4), (7, 6), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 6)))
         self.assertFalse(success, "Castling allowed even though king is in check")
 
     def test_illegal_castling_rook_moved_white_left(self):
@@ -1127,7 +1117,7 @@ class TestChess(unittest.TestCase):
         success, _ = self.chess.move(Move((1, 0), (0, 0)))
         self.assertTrue(success)
         self.chess.in_turn = 1
-        success, _ = self.chess.move(Move((0, 4), (0, 2), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 2)))
         self.assertFalse(success, "Castling allowed after rook having previously been moved")
 
     def test_illegal_castling_rook_moved_white_right(self):
@@ -1141,7 +1131,7 @@ class TestChess(unittest.TestCase):
         success, _ = self.chess.move(Move((1, 7), (0, 7)))
         self.assertTrue(success)
         self.chess.in_turn = 1
-        success, _ = self.chess.move(Move((0, 4), (0, 6), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 6)))
         self.assertFalse(success, "Castling allowed after rook having previously been moved")
 
     def test_illegal_castling_rook_moved_black_left(self):
@@ -1157,7 +1147,7 @@ class TestChess(unittest.TestCase):
         success, _ = self.chess.move(Move((6, 0), (7, 0)))
         self.assertTrue(success)
         self.chess.in_turn = -1
-        success, _ = self.chess.move(Move((7, 4), (7, 2), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 2)))
         self.assertFalse(success, "Castling allowed after rook having previously been moved")
 
     def test_illegal_castling_rook_moved_black_right(self):
@@ -1172,7 +1162,7 @@ class TestChess(unittest.TestCase):
         success, _ = self.chess.move(Move((6, 7), (7, 7)))
         self.assertTrue(success)
         self.chess.in_turn = -1
-        success, _ = self.chess.move(Move((7, 4), (7, 6), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 6)))
         self.assertFalse(success, "Castling allowed after rook having previously been moved")
 
     def test_illegal_castle_middle_attacked_left_white(self):
@@ -1181,7 +1171,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[0, 3] = 0
         self.chess.board[1, 3] = 0
         self.chess.board[5, 3] = -10
-        success, _ = self.chess.move(Move((0, 4), (0, 2), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 2)))
         self.assertFalse(success, "Castling allowed even though king moves through attacked square")
 
     def test_illegal_castle_middle_attacked_right_white(self):
@@ -1189,7 +1179,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[0, 5] = 0
         self.chess.board[1, 5] = 0
         self.chess.board[5, 5] = -10
-        success, _ = self.chess.move(Move((0, 4), (0, 6), castle=True))
+        success, _ = self.chess.move(Move((0, 4), (0, 6)))
         self.assertFalse(success, "Castling allowed even though king moves through attacked square")
 
     def test_illegal_castle_middle_attacked_left_black(self):
@@ -1199,7 +1189,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[6, 3] = 0
         self.chess.board[2, 3] = 10
         self.chess.in_turn = -1
-        success, _ = self.chess.move(Move((7, 4), (7, 2), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 2)))
         self.assertFalse(success, "Castling allowed even though king moves through attacked square")
 
     def test_illegal_castle_middle_attacked_right_black(self):
@@ -1208,7 +1198,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[6, 5] = 0
         self.chess.board[2, 5] = 10
         self.chess.in_turn = -1
-        success, _ = self.chess.move(Move((7, 4), (7, 6), castle=True))
+        success, _ = self.chess.move(Move((7, 4), (7, 6)))
         self.assertFalse(success, "Castling allowed even though king moves through attacked square")
 
     # En Passant
@@ -1216,7 +1206,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[4, 6] = 1
         self.chess.in_turn = -1
         self.chess.move(Move((6, 7), (4, 7)))
-        success, m = self.chess.move(Move((4, 6), (5, 7), en_passant=True))
+        success, m = self.chess.move(Move((4, 6), (5, 7)))
         self.assertTrue(success, m)
         self.assertEqual(self.chess.board[4, 7], 0)
 
@@ -1224,7 +1214,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[4, 6] = 1
         self.chess.in_turn = -1
         self.chess.move(Move((6, 5), (4, 5)))
-        success, m = self.chess.move(Move((4, 6), (5, 5), en_passant=True))
+        success, m = self.chess.move(Move((4, 6), (5, 5)))
         self.assertTrue(success, m)
         self.assertEqual(self.chess.board[4, 5], 0)
 
@@ -1232,7 +1222,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[3, 6] = -1
         # self.chess.in_turn = -1
         self.chess.move(Move((1, 7), (3, 7)))
-        success, m = self.chess.move(Move((3, 6), (2, 7), en_passant=True))
+        success, m = self.chess.move(Move((3, 6), (2, 7)))
         self.assertTrue(success, m)
         self.assertEqual(self.chess.board[3, 7], 0)
 
@@ -1240,7 +1230,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[3, 6] = -1
         # self.chess.in_turn = -1
         self.chess.move(Move((1, 5), (3, 5)))
-        success, m = self.chess.move(Move((3, 6), (2, 5), en_passant=True))
+        success, m = self.chess.move(Move((3, 6), (2, 5)))
         self.assertTrue(success, m)
         self.assertEqual(self.chess.board[3, 5], 0)
 
@@ -1249,7 +1239,7 @@ class TestChess(unittest.TestCase):
         self.chess.board[6, 7] = -2
         self.chess.in_turn = -1
         self.chess.move(Move((6, 7), (4, 7)))
-        success, _ = self.chess.move(Move((4, 6), (5, 7), en_passant=True))
+        success, _ = self.chess.move(Move((4, 6), (5, 7)))
         self.assertFalse(success, "En Passent allowed where last move was made by rook")
 
     def test_illegal_en_passant2(self):
@@ -1258,9 +1248,16 @@ class TestChess(unittest.TestCase):
         self.chess.move(Move((6, 7), (4, 7)))
         self.chess.move(Move((1, 0), (2, 0)))
         self.chess.move(Move((6, 0), (5, 0)))
-        success, _ = self.chess.move(Move((4, 6), (5, 7), en_passant=True))
+        success, _ = self.chess.move(Move((4, 6), (5, 7)))
         self.assertFalse(success, "En Passant allowed one turn later than relevant move was made")
 
+    def test_illegal_en_passant3(self):
+        self.chess.board[4, 6] = 1
+        self.chess.board[5, 7] = -1
+        self.chess.in_turn = -1
+        self.chess.move(Move((5, 7), (4, 7)))
+        success, _ = self.chess.move(Move((4, 6), (5, 7)))
+        self.assertFalse(success, "En Passant allowed with pawn doing single move to the right spot")
 
     # TODO Draw rules
     # TODO Redo get legal moves to handle castling, en passent, and promotion, as well as switching to Move class

@@ -3,15 +3,14 @@ import copy
 import chess_util
 import numpy as np
 
-
 def _is_outside_board(pos):
     if pos[0] > 7 or pos[0] < 0 or pos[1] > 7 or pos[1] < 0:
         return True
     else:
         return False
 
-
-def _is_legal_pawn_move(board, move):
+def _is_legal_pawn_move(chess, move):
+    board = chess.board
     frm = move.frm
     to = move.to
     if abs(board[frm]) != 1:
@@ -20,59 +19,50 @@ def _is_legal_pawn_move(board, move):
     dist = np.subtract(to, frm)  # dist = np.subtract(frm, to)
     vertical = dist[0]
     horizontal = dist[1]
-    #  Beautiful mother of if-statements (sarcasm).
-    if vertical * player == 1:  # Single square forward
-        if abs(horizontal) == 0:  # Completely standard move
-            if board[to] != 0:  # Non-empty 'to' square for non attack move
-                return False, "Illegal pawn move"
-        elif abs(horizontal) == 1:  # Attack move
-            if player * board[to] >= 0:  # Own or empty spot -> Illegal as this should be an attack move
-                return False, "Illegal pawn move"
-        else:
-            return False, "Illegal pawn move"
-    elif vertical * player == 2:  # Double move
-        if horizontal != 0:
-            return False, "Illegal pawn move"
-        if (frm[0] != 1 and player == 1) or (frm[0] != 6 and player == -1):
-            return False, "Illegal pawn move"
-        if board[to] != 0 or board[frm[0] + player, frm[1]] != 0:
-            return False, "Illegal pawn move" 
-    else: 
+
+    # Refactor to avoid duplicate computations. (small computational cost for more readable code?)
+    abs_vertical = vertical * player  # This means a movement in correct direction gives abs_vertical > 0
+    abs_horizontal = abs(horizontal)
+    is_standard_move = abs_vertical == 1 and abs_horizontal == 0
+    is_double_move = abs_vertical == 2 and abs_horizontal == 0
+    is_attack_move = abs_vertical == 1 and abs_horizontal == 1
+    if not (is_standard_move or is_double_move or is_attack_move):  # True of move is not within normal pawn move types
         return False, "Illegal pawn move"
+    return_msg = "Legal pawn move"
+
+    #  Beautiful mother of if-statements (sarcasm).
+    if is_standard_move:  # standard pawn move
+        if board[to] != 0:  #non-empty 'to' spot
+            return False, "Pawn can only attack diagonally"
+
+    elif is_double_move:  # Double move
+        if ( player == 1 and frm[0] != 1) or (player == -1 and frm[0] != 6):  # Checks if correct rows for double moves (1 for white, 6 for black)
+            return False, "Illegal pawn move"
+        if board[to] != 0 or board[frm[0] + player, frm[1]] != 0:  # Checks if middle square is empty
+            return False, "Illegal pawn move"
+
+    elif is_attack_move:
+        if player * board[to] > 0:  # Own or empty spot -> Illegal as this should be an attack move
+            return False, "Diagonal pawn move must be a capture move"
+        elif board[to] == 0:
+            is_legal_en_passant, msg = _is_legal_en_passant(chess, move)
+            if not is_legal_en_passant:
+                return False, "Diagonal pawn move must be a capture move"
+            else:
+                return_msg = msg 
+    else:
+        return False, "This should never happen. This case should be caught earlier"
+
     to_row = to[0]
     if move.promote is not None:
-        if to_row not in [0, 7]:
+        if to_row not in [0, 7]:  # Other checks make sure that if to_row in [0, 7] it is the correct player 
             return False, "Cannot promote pawn if pawn does not move to enemy backline"
         if move.promote not in [1, 2, 3, 4, 10]:
             return False, "Illegal choice for pawn promotion. Must be in [1, 2, 3, 4, 10]. \n1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 10 = queen"
     else:
         if to_row in [0, 7]:
             return False, "Illegal choice for pawn promotion. Must be in [1, 2, 3, 4, 10]. \n1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 10 = queen"
-    return True, "Legal pawn move"
-    # if vertical * player not in [1, 2] or abs(horizontal) not in [0, 1]:
-    #     return False, "Illegal pawn move"
-
-    # if vertical == player * -1:
-    #     if horizontal == 0 and board[to] == 0:
-    #         return True, "Standard pawn move"
-    #     elif (horizontal == -1 or horizontal == 1) and board[to]/board[frm] < 0:
-    #         return True, "Attacking pawn move"
-    #     else:
-    #         return False, "Illegal pawn move"
-    # elif vertical == player * -2 and ((player == 1 and frm[0] == 1) or (player == -1 and frm[0] == 6)):
-    #     if horizontal == 0 and board[to] == 0 and board[frm[0] + player, frm[1]] == 0:
-    #         return True, "Double pawn move"
-    #     else:
-    #         return False, "Illegal pawn move"
-    # return False, "Illegal pawn move"
-
-# def _is_legal_promotion_move(board, move):
-#     if move.promote not in [1, 2, 3, 4, 10]:
-#         return False, "Illegal choice for pawn promotion. Must be in [1, 2, 3, 4, 10]. \n1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 10 = queen"
-#     to = move.to
-#     if to[0] not in [0, 7]:
-#         return False, "Illegal 'to' position for promotion move"
-#     return _is_legal_pawn_move(board, move)
+    return True, return_msg
 
 
 def _is_legal_bishop_move(board, frm, to):
@@ -121,18 +111,25 @@ def _is_legal_queen_move(board, frm, to):
     return False, "Illegal queen move"
 
 
-def _is_legal_king_move(board, frm, to):
-    if abs(frm[0] - to[0]) > 1 or abs(frm[1] - to[1]) > 1:
-        return False, "Illegal king move"
-    return True, "Legal king move"
+def _is_legal_king_move(chess, move):
+    frm = move.frm
+    to = move.to
+    board = chess.board
+    if abs(frm[0] - to[0]) > 1 or abs(frm[1] - to[1]) > 1:  
+        is_legal_castle, msg = _is_legal_castling(chess, move)
+        if not is_legal_castle:
+            return False, msg
+        else:
+            msg = "Legal castling move"
+    else:
+        msg =  "Legal king move"
+    return True, msg
 
 def _is_legal_castling(chess, move):
     frm = move.frm
     to = move.to
     board = chess.board
-    if abs(board[frm]) != 100:
-        return False, "Can only castle with King"
-    player = board[frm] / 100
+    player = board[frm] / abs(board[frm])
     if frm == (0, 4) or frm == (7, 4):
         row = frm[0]  # 0 if white move, 7 if black. Using this variable allows using same code for both colors below
         if to == (row, 2):  # If castling left
@@ -151,6 +148,7 @@ def _is_legal_castling(chess, move):
             return False, "Illegal 'to' position for castling move"
     else:
         return False, "Illegal king location for castling"
+    
     if (not chess.legal_castles[str(to)]):
         return False, "Illegal castle due to previous rook or king movement"
     in_check, pos = is_in_check(chess, player, king_pos=frm)
@@ -158,26 +156,21 @@ def _is_legal_castling(chess, move):
         return False, "Cannot castle if king is in check. Check from " + str(pos)
     return True, "Legal"
 
-def _is_legal_en_passant(chess, move):
+def _is_legal_en_passant(chess, move): # Asumes it is called from '_is_legal_pawn_move' and therefore doesn't check standard pawn things
     frm  = move.frm
     to = move.to
-    if abs(chess.board[frm]) != 1:
-        return False, "En Passant only possible for pawns"
-    player = chess.in_turn  # Inconsistant with how I do it other places
-    if player == 1:
-        if frm[0] != 4:
-            return False, "Illegal En Passant"
-    else:
-        if frm[0] != 3:
-            return False, "Illegal En Passant"
-    
-    if not (to == (frm[0] + player, frm[1] + 1) or to == (frm[0] + player, frm[1] - 1)):
+
+    player = chess.in_turn  # Inconsistent with how I do it other places
+    if player == 1 and frm[0] != 4:  # For white en passant can only happen at row 4 
         return False, "Illegal En Passant"
+    elif player == -1 and frm[0] != 3: # For black en passant can only happen at row 3
+        return False, "Illegal En Passant"
+    
     last_move = chess.last_move
     if not (last_move.frm == (to[0] + player, to[1]) and last_move.to == (to[0] - player, to[1])):
         return False, "Illegal En Passant"
     if chess.board[chess.last_move.to] * player != -1:
-        return False, "Last move was not made by pawn"
+        return False, "Illegal En Passant"
     return True, "Legal En Passant"
 
 
@@ -185,6 +178,7 @@ def _is_legal_move(chess, move, in_turn):
     board = chess.board
     frm = move.frm
     to = move.to
+
     # General checks
     if _is_outside_board(frm):
         return False, "\"frm\" pos outside board"
@@ -195,23 +189,18 @@ def _is_legal_move(chess, move, in_turn):
         return False, "Empty square selected"
     piece_type = abs(piece)
     owner = piece / piece_type
+    # print("Owner: ", owner)
+    # print("In turn: ", in_turn)
+    # in_turn = chess.in_turn
     if in_turn != owner:
         return False, "Wrong player in turn"
     if board[to]/board[frm] > 0:
         return False, "Illegal move; trying to move to own piece"
+
     # Specific piece type checks
-    if move.castle:
-        if move.en_passant or move.promote is not None:
-            return False, "Move can only take one of castling, en-passant or promotion arguments"
-        return _is_legal_castling(chess, move)
-    if move.promote is not None and (move.castle or move.en_passant):
-        return False, "Move can only take one of castling, en-passant or promotion arguments"
-    if move.en_passant: 
-        if move.castle or move.promote is not None:
-            return False, "Move can only take one of castling, en-passant or promotion arguments"
-        return _is_legal_en_passant(chess, move)
+    # TODO: Inconsistant function args for different piece types
     if piece_type == 1:
-        return _is_legal_pawn_move(board, move)
+        return _is_legal_pawn_move(chess, move)
     elif piece_type == 2:
         return _is_legal_rook_move(board, frm, to)
     elif piece_type == 3:
@@ -221,7 +210,7 @@ def _is_legal_move(chess, move, in_turn):
     elif piece_type == 10:
         return _is_legal_queen_move(board, frm, to)
     elif piece_type == 100:
-        return _is_legal_king_move(board, frm, to)
+        return _is_legal_king_move(chess, move)
     else:
         raise ValueError("Is_legal_move error: piece_type: ", piece_type, ", not recognised")
 
@@ -231,7 +220,7 @@ def _get_legal_pawn_moves(board, pos):
     row = pos[0]
     column = pos[1]
     moves = []
-    # TODO Handle that there weird move shit
+    # TODO Handle En passant
     if not _is_outside_board((row + player, column)) and board[row + player, column] == 0:
         moves.append((pos, (row + player, column)))
         if (player == 1 and row == 1) or (player == -1 and row == 6):
@@ -406,13 +395,10 @@ def is_in_check(chess, player, king_pos=None):
 #                 pass
 
 class Move:
-    def __init__(self, frm, to, promote=None, castle=False, en_passant=False):
+    def __init__(self, frm, to, promote=None):
         self.frm = frm
         self.to = to
         self.promote = promote
-        self.castle = castle
-        self.en_passant = en_passant
-
 
 class Chess:
     def __init__(self, set_start_params=True):
@@ -451,7 +437,7 @@ class Chess:
 
         if move.promote is not None and move.promote in [1, 2, 3, 4, 10]:
             self.board[to] = move.promote * self.in_turn
-        if move.castle:
+        if msg == "Legal castling move":  # move.castle:
             if to == (0, 2):
                 self.board[0, 3] = 2
                 self.board[0, 0] = 0
@@ -464,7 +450,7 @@ class Chess:
             elif to == (7, 6):
                 self.board[7, 5] = -2
                 self.board[7, 7] = 0
-        if move.en_passant:
+        if msg == "Legal En Passant":
             self.board[to[0] - self.in_turn, to[1]] = 0
 
         is_checked, from_pos = is_in_check(self, self.in_turn)

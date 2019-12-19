@@ -1,5 +1,7 @@
+import sys
+sys.path.append("..")  # Ugly as fuck.. Thanks pythons retarded import system
 from naught_cross import NaughtCross
-from ai import NaughtAI
+from ai.ai import NaughtAI
 import naught_util
 
 
