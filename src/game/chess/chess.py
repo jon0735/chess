@@ -216,22 +216,35 @@ def _is_legal_move(chess, move, in_turn):
 
 
 def _get_legal_pawn_moves(board, pos):
+    # print("POS: " + str(pos))
     player = board[pos]
     row = pos[0]
     column = pos[1]
     moves = []
     # TODO Handle En passant
     if not _is_outside_board((row + player, column)) and board[row + player, column] == 0:
-        moves.append((pos, (row + player, column)))
+        moves.append(Move(pos, (row + player, column)))
         if (player == 1 and row == 1) or (player == -1 and row == 6):
             if board[row + 2 * player, column] == 0:
-                moves.append((pos, (row + 2 * player, column)))
+                moves.append(Move(pos, (row + 2 * player, column)))
     left_attack = (row + player, column - 1)
     right_attack = (row + player, column + 1)
     if not _is_outside_board(left_attack) and board[left_attack] * player < 0:
-        moves.append((pos, left_attack))
+        moves.append(Move(pos, left_attack))
     if not _is_outside_board(right_attack) and board[right_attack] * player < 0:
-        moves.append((pos, right_attack))
+        moves.append(Move(pos, right_attack))
+    
+    # Handle promotion
+    if (row == 1 and player == -1) or (row == 6 and player == 1):
+        temp_moves = []
+        for move in moves:
+            to = move.to
+            temp_moves.append(Move(pos, to, promote=2))
+            temp_moves.append(Move(pos, to, promote=3))
+            temp_moves.append(Move(pos, to, promote=4))
+            temp_moves.append(Move(pos, to, promote=10))
+        moves = temp_moves
+
     return moves
 
 
@@ -247,9 +260,11 @@ def _get_legal_rook_moves(board, pos):
             if _is_outside_board(p):
                 break
             elif board[p] == 0:
-                moves.append((pos, p))
+                # m = Move(pos, p)
+                moves.append(Move(pos, p))
+                # print(m)
             elif board[p] * player < 0:
-                moves.append((pos, p))
+                moves.append(Move(pos, p))
                 break
             elif board[p] * player > 0:
                 break
@@ -265,7 +280,7 @@ def _get_legal_knight_moves(board, pos):
     for p in pos_list:
         to = (p[0] + pos[0], p[1] + pos[1])
         if not _is_outside_board(to) and board[to] * player <= 0:
-            moves.append((pos, to))
+            moves.append(Move(pos, to))
     return moves
 
 
@@ -281,9 +296,9 @@ def _get_legal_bishop_moves(board, pos):
             if _is_outside_board(p):
                 break
             elif board[p] == 0:
-                moves.append((pos, p))
+                moves.append(Move(pos, p))
             elif board[p] * player < 0:
-                moves.append((pos, p))
+                moves.append(Move(pos, p))
                 break
             elif board[p] * player > 0:
                 break
@@ -308,11 +323,12 @@ def _get_legal_king_moves(board, pos):
             if _is_outside_board(p):
                 continue
             if board[p] * player <= 0:
-                moves.append((pos, p))
+                moves.append(Move(pos, p))
     return moves
 
 
 def get_legal_moves(chess, player):
+    # print("GET LEGAL MOVES CALLED")
     board = chess.board
     moves = []
     for i, row in enumerate(board):
@@ -337,7 +353,9 @@ def get_legal_moves(chess, player):
     testing_chess = copy.deepcopy(chess)
     # testing_board = copy.deepcopy(board)
     king_pos = _find_king(testing_chess.board, player)
-    for (frm, to) in moves:
+    for move in moves:
+        to = move.to
+        frm = move.frm
         # TODO handle castling
         # TODO handle that weird pawn move
         old_to = board[to]
@@ -350,9 +368,10 @@ def get_legal_moves(chess, player):
             self_in_check, _ = is_in_check(testing_chess, player, king_pos=king_pos)
         # self_in_check, _ = is_in_check(testing_board, player)
         if not self_in_check:
-            legal_moves.append((frm, to))
+            legal_moves.append(move)
         testing_chess.board[frm] = old_frm
         testing_chess.board[to] = old_to
+
     return legal_moves
 
 
@@ -399,6 +418,34 @@ class Move:
         self.frm = frm
         self.to = to
         self.promote = promote
+    
+    def __gt__(self, other_move):
+        if isinstance(other_move, Move):
+            if self.frm == other_move.frm:
+                return self.to > other_move.to
+            else:
+                return self.frm > other_move.frm
+        else:
+            raise Exception("Incompatible types")
+    
+    def __lt__(self, other_move):
+        if isinstance(other_move, Move):
+            if self.frm == other_move.frm:
+                return self.to < other_move.to
+            else:
+                return self.frm < other_move.frm
+        else:
+            raise Exception("Incompatible types")
+
+    def __eq__(self, other_move):
+        if isinstance(other_move, Move):
+            return self.frm == other_move.frm and self.to == other_move.to and self.promote == other_move.promote
+        else:
+            return False
+    
+    def __str__(self):
+        return str(self.__dict__)
+
 
 class Chess:
     def __init__(self, set_start_params=True):

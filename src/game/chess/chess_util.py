@@ -60,3 +60,10 @@ def get_unicode_char(val):
     else:
         raise ValueError("Value ", val, ", not recognised")
     return s
+
+def move_list_to_string(move_list):
+    res = "["
+    for move in move_list:
+        res += str(move)
+    res += "]"
+    return res

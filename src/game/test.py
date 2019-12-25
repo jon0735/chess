@@ -848,14 +848,16 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[2, 0] = 1
         moves_list = chess.get_legal_moves(self.empty_chess, 1)
         self.assertEqual(len(moves_list), 1)
-        self.assertEqual(moves_list[0], ((2, 0), (3, 0)))
+        self.assertEqual(moves_list[0], Move((2, 0), (3, 0)))
 
     def test_get_legal_pawn_moves_attack_double(self):
         self.empty_chess.board[6, 2] = -1
         self.empty_chess.board[5, 1] = 1
         moves_list = sorted(chess.get_legal_moves(self.empty_chess, -1))
         self.assertEqual(len(moves_list), 3)
-        real_move_list = sorted([((6, 2), (5, 1)), ((6, 2), (5, 2)), ((6, 2), (4, 2))])
+        real_move_list = sorted([Move((6, 2), (5, 1)), 
+                                 Move((6, 2), (5, 2)), 
+                                 Move((6, 2), (4, 2))])
         self.assertTrue(moves_list == real_move_list, "Wrong move list: " + str(moves_list) + " != " + str(real_move_list))
 
     # def test_get_legal_pawn_moves_promotion(self):
@@ -864,19 +866,20 @@ class TestChess(unittest.TestCase):
     #     moves_list = sorted(chess.get_legal_moves(self.empty_chess.board, 1))
     #     real_move_list = sorted([((6, 2), (5, 1)), ((6, 2), (5, 2)), ((6, 2), (4, 2))])
 
+    # TODO: chage str() -> chess_util.move_list_to_string()
     def test_get_legal_knight_moves(self):
         self.empty_chess.board[3, 3] = 3
         self.empty_chess.board[2, 1] = 1
         self.empty_chess.board[4, 5] = -1
         moves_list = sorted(chess.get_legal_moves(self.empty_chess, 1))
-        real_move_list = sorted([((2, 1), (3, 1)),
-                                 ((3, 3), (4, 5)),
-                                 ((3, 3), (5, 4)),
-                                 ((3, 3), (5, 2)),
-                                 ((3, 3), (4, 1)),
-                                 ((3, 3), (1, 2)),
-                                 ((3, 3), (1, 4)),
-                                 ((3, 3), (2, 5))])
+        real_move_list = sorted([Move((2, 1), (3, 1)),
+                                 Move((3, 3), (4, 5)),
+                                 Move((3, 3), (5, 4)),
+                                 Move((3, 3), (5, 2)),
+                                 Move((3, 3), (4, 1)),
+                                 Move((3, 3), (1, 2)),
+                                 Move((3, 3), (1, 4)),
+                                 Move((3, 3), (2, 5))])
         self.assertTrue(moves_list == real_move_list, "Wrong move list: " + str(moves_list) + " != " + str(real_move_list))
 
     def test_get_legal_rook_moves(self):
@@ -884,11 +887,11 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[2, 2] = 1
         self.empty_chess.board[0, 3] = -1
         moves_list = sorted(chess.get_legal_moves(self.empty_chess, 1))
-        real_move_list = sorted([((0, 2), (1, 2)),
-                                 ((0, 2), (0, 3)),
-                                 ((0, 2), (0, 1)),
-                                 ((0, 2), (0, 0)),
-                                 ((2, 2), (3, 2))])
+        real_move_list = sorted([Move((0, 2), (1, 2)),
+                                 Move((0, 2), (0, 3)),
+                                 Move((0, 2), (0, 1)),
+                                 Move((0, 2), (0, 0)),
+                                 Move((2, 2), (3, 2))])
         self.assertTrue(moves_list == real_move_list, "Wrong move list: " + str(moves_list) + " != " + str(real_move_list))
 
     def test_get_legal_bishop_moves(self):
@@ -896,10 +899,10 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[2, 0] = 1
         self.empty_chess.board[2, 4] = -1
         moves_list = sorted(chess.get_legal_moves(self.empty_chess, 1))
-        real_move_list = sorted([((2, 0), (3, 0)),
-                                 ((0, 2), (1, 1)),
-                                 ((0, 2), (1, 3)),
-                                 ((0, 2), (2, 4))])
+        real_move_list = sorted([Move((2, 0), (3, 0)),
+                                 Move((0, 2), (1, 1)),
+                                 Move((0, 2), (1, 3)),
+                                 Move((0, 2), (2, 4))])
         self.assertTrue(moves_list == real_move_list, "Wrong move list: " + str(moves_list) + " != " + str(real_move_list))
 
     def test_get_legal_queen_moves(self):
@@ -909,28 +912,32 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[2, 4] = -1
         self.empty_chess.board[0, 3] = -4
         moves_list = sorted(chess.get_legal_moves(self.empty_chess, 1))
-        real_move_list = sorted([((2, 0), (3, 0)),
-                                 ((0, 2), (1, 2)),
-                                 ((0, 2), (1, 3)),
-                                 ((0, 2), (2, 4)),
-                                 ((0, 2), (0, 3)),
-                                 ((0, 2), (0, 1)),
-                                 ((0, 2), (0, 0)),
-                                 ((0, 2), (1, 1))])
-        self.assertTrue(moves_list == real_move_list, "Wrong move list: " + str(moves_list) + " != " + str(real_move_list))
+        real_move_list = sorted([Move((2, 0), (3, 0)),
+                                 Move((0, 2), (1, 2)),
+                                 Move((0, 2), (1, 3)),
+                                 Move((0, 2), (2, 4)),
+                                 Move((0, 2), (0, 3)),
+                                 Move((0, 2), (0, 1)),
+                                 Move((0, 2), (0, 0)),
+                                 Move((0, 2), (1, 1))])
+        self.assertTrue(moves_list == real_move_list, "Wrong move list: " 
+                        + chess_util.move_list_to_string(moves_list) + " != " 
+                        + chess_util.move_list_to_string(real_move_list))
 
     def test_get_legal_king_moves(self):
         self.empty_chess.board[0, 2] = 100
         self.empty_chess.board[0, 3] = -1
         self.empty_chess.board[1, 3] = 1
         moves_list = sorted(chess.get_legal_moves(self.empty_chess, 1))
-        real_move_list = sorted([((1, 3), (2, 3)),
-                                 ((1, 3), (3, 3)),
-                                 ((0, 2), (1, 2)),
-                                 ((0, 2), (0, 3)),
-                                 ((0, 2), (1, 1)),
-                                 ((0, 2), (0, 1))])
-        self.assertTrue(moves_list == real_move_list, "Wrong move list: " + str(moves_list) + " != " + str(real_move_list))
+        real_move_list = sorted([Move((1, 3), (2, 3)),
+                                 Move((1, 3), (3, 3)),
+                                 Move((0, 2), (1, 2)),
+                                 Move((0, 2), (0, 3)),
+                                 Move((0, 2), (1, 1)),
+                                 Move((0, 2), (0, 1))])
+        self.assertTrue(moves_list == real_move_list, "Wrong move list: " 
+                        + chess_util.move_list_to_string(moves_list) + " != " 
+                        + chess_util.move_list_to_string(real_move_list))
 
     def test_get_legal_moves_check_stuff(self):
         self.empty_chess.board[1, 0] = 100
@@ -938,10 +945,27 @@ class TestChess(unittest.TestCase):
         self.empty_chess.board[0, 7] = -2
         self.empty_chess.board[1, 7] = -2
         moves_list = sorted(chess.get_legal_moves(self.empty_chess, 1))
-        real_move_list = sorted([((1, 0), (2, 0)),
-                                 ((1, 0), (2, 1))])
+        real_move_list = sorted([Move((1, 0), (2, 0)),
+                                 Move((1, 0), (2, 1))])
         self.assertTrue(moves_list == real_move_list,
-                        "Wrong move list: " + str(moves_list) + " != " + str(real_move_list))
+                        "Wrong move list: " + chess_util.move_list_to_string(moves_list) 
+                        + " != " + chess_util.move_list_to_string(real_move_list))
+
+
+    def test_get_legal_promote_moves(self):
+        self.empty_chess.board[6, 0] = 1
+        moves_list = sorted(chess.get_legal_moves(self.empty_chess, 1))
+        real_move_list = sorted([Move((6, 0), (7, 0), promote=2),
+                                Move((6, 0), (7, 0), promote=3),
+                                Move((6, 0), (7, 0), promote=4),
+                                Move((6, 0), (7, 0), promote=10)])
+        self.assertTrue(moves_list == real_move_list,
+                        "Wrong move list: " + chess_util.move_list_to_string(moves_list) + " != " 
+                        + chess_util.move_list_to_string(real_move_list))
+
+    def test_get_legal_moves_castling_white(self):
+        self.assertTrue(False)
+
 
     def test_promote_to_queen(self):
         self.empty_chess.board[6, 0] = 1
