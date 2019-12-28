@@ -328,7 +328,6 @@ def _get_legal_king_moves(board, pos):
 
 
 def get_legal_moves(chess, player):
-    # print("GET LEGAL MOVES CALLED")
     board = chess.board
     moves = []
     for i, row in enumerate(board):
@@ -356,7 +355,6 @@ def get_legal_moves(chess, player):
     for move in moves:
         to = move.to
         frm = move.frm
-        # TODO handle castling
         # TODO handle that weird pawn move
         old_to = board[to]
         old_frm = board[frm]
@@ -371,7 +369,38 @@ def get_legal_moves(chess, player):
             legal_moves.append(move)
         testing_chess.board[frm] = old_frm
         testing_chess.board[to] = old_to
-
+    # Castling handling
+    if player == 1 and board[0, 4] == 100:
+        left_castle = Move((0, 4), (0, 2))
+        right_castle = Move((0, 4), (0, 6))
+        if chess.legal_castles['(0, 2)'] and _is_legal_move(chess, left_castle, 1):
+            legal_moves.append(left_castle)
+        if chess.legal_castles['(0, 6)'] and _is_legal_move(chess, right_castle, 1):
+            legal_moves.append(right_castle)
+    elif player == -1 and chess.board[7, 4] == -100:
+        left_castle = Move((7, 4), (7, 2))
+        right_castle = Move((7, 4), (7, 6))
+        if chess.legal_castles['(7, 2)'] and _is_legal_move(chess, left_castle, -1):
+            legal_moves.append(left_castle)
+        if chess.legal_castles['(7, 6)'] and _is_legal_move(chess, right_castle, -1):
+            legal_moves.append(right_castle)
+    # En passant handling
+    if chess.last_move is not None:
+        last_move = chess.last_move
+        last_move_frm = last_move.frm
+        last_move_to = last_move.to
+        r = last_move_to[0]
+        c = last_move_to[1]
+        if player == 1 and last_move_frm[0] == 6 and last_move_to[0] == 4 and board[last_move_to] == -1:
+            if c - 1 >= 0 and board[r, c - 1] == 1:
+                legal_moves.append(Move((r, c-1), (r+1, c)))
+            if c + 1 < 8 and board[r, c + 1] == 1:
+                legal_moves.append(Move((r, c+1), (r+1, c)))
+        elif player == -1 and last_move_frm[0] == 1 and last_move_to[0] == 3 and board[last_move_to] == 1:
+            if c - 1 >= 0 and board[r, c - 1] == -1:
+                legal_moves.append(Move((r, c-1), (r-1, c)))
+            if c + 1 < 8 and board[r, c + 1] == -1:
+                legal_moves.append(Move((r, c+1), (r-1, c)))
     return legal_moves
 
 
@@ -455,9 +484,10 @@ class Chess:
             self.turn_num = 1
             self.is_in_progress = True
             self.winner = None
-            self.legal_moves = get_legal_moves(self, self.in_turn) # Make function just for start, to reduce init time
             self.last_move = None
             self.legal_castles = {'(0, 2)' : True, '(0, 6)' : True, '(7, 2)' : True, '(7, 6)' : True}
+            self.legal_moves = get_legal_moves(self, self.in_turn) # Make function just for start, to reduce init time
+
         else: # Low cost init if one needs to reset everything anyway
             self.board = None
             self.in_turn = None
@@ -502,9 +532,6 @@ class Chess:
 
         is_checked, from_pos = is_in_check(self, self.in_turn)
         if is_checked:
-            # TODO handle castling and other move
-            # self.board[to] = old_to
-            # self.board[frm] = old_frm
             self.board = backup_board
             return False, ("Illegal move due to check from pos " + str(from_pos))
 
