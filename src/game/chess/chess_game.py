@@ -1,7 +1,7 @@
 from chess import Chess
 import chess_util
 
-#  TODO: Need major update if this is supposed to work. Made before Move class amongst other
+#  TODO: Need major update if this is supposed to work. Made before Move class amongst other huge changes
 
 class ChessGame:
     def __init__(self):

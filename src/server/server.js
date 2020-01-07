@@ -6,6 +6,8 @@ var http = require('http');
 var app = express();
 
 const client_path = path.join(__dirname, '..', 'client');
+const python_script_path = path.join(__dirname, '..', 'game', 'chess', 'chess_for_node.py');
+// console.log(python_script_path);
 
 app.use(express.static(client_path));
 
@@ -49,5 +51,5 @@ socket.on('connection', ws => {
     //   console.log(json);
     //   sendstuff(json.deviceId, json.led, json.value );
     });
-  })
+  });
 

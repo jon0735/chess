@@ -15,6 +15,7 @@ import ai.nn_util as nn_util
 import ai.ai_strats as ai_strats
 import chess.chess_util as chess_util
 import chess.chess as chess
+import chess.chess_for_node as chess_for_node
 
 import copy
 import unittest
@@ -862,12 +863,6 @@ class TestChess(unittest.TestCase):
                         + chess_util.move_list_to_string(moves_list) + " \nCalculated: \n " 
                         + chess_util.move_list_to_string(real_move_list))
 
-    # def test_get_legal_pawn_moves_promotion(self):
-    #     self.empty_chess.board[6, 1] = 1
-    #     self.empty_chess.board[7, 2] = -1
-    #     moves_list = sorted(chess.get_legal_moves(self.empty_chess.board, 1))
-    #     real_move_list = sorted([((6, 2), (5, 1)), ((6, 2), (5, 2)), ((6, 2), (4, 2))])
-
     # TODO: chage str() -> chess_util.move_list_to_string()
     def test_get_legal_knight_moves(self):
         self.empty_chess.board[3, 3] = 3
@@ -1326,15 +1321,62 @@ class TestChess(unittest.TestCase):
         success, _ = self.chess.move(Move((4, 6), (5, 7)))
         self.assertFalse(success, "En Passant allowed with pawn doing single move to the right spot")
 
-    # Drawing
-
-    # def test_some_draw_shit(self):
-    #     self.assertTrue(False, "TODO: Implement draw rules")
-
+    def test_draw_50_moves(self): # If repeated positions is included, this will test will no longer correctly test the 50 move thing
+        self.chess.move(Move((1, 0), (3, 0)))
+        self.chess.move(Move((6, 0), (4, 0)))
+        self.chess.move(Move((0, 0), (1, 0)))
+        self.chess.move(Move((7, 0), (6, 0)))
+        for _ in range(12): # 12 iterations, 4 moves each time = 48 moves. Plus 2 initial -> 50 moves
+            self.chess.move(Move((1, 0), (0, 0)))
+            self.chess.move(Move((6, 0), (7, 0)))
+            self.chess.move(Move((0, 0), (1, 0)))
+            self.chess.move(Move((7, 0), (6, 0)))
+        self.assertFalse(self.chess.is_in_progress)
+        self.assertIsNone(self.chess.winner)
     
-    # TODO Draw rules
+    def test_draw_50_moves_interrupted_by_pawn_moves(self): # If repeated positions is included, this test will probably break. If this happens check above test as well
+        self.chess.move(Move((1, 0), (3, 0)))
+        self.chess.move(Move((6, 0), (4, 0)))
+        self.chess.move(Move((0, 0), (1, 0)))
+        self.chess.move(Move((7, 0), (6, 0)))
+        for _ in range(5): # 12 iterations, 4 moves each time = 48 moves. Plus 2 initial -> 50 moves
+            self.chess.move(Move((1, 0), (0, 0)))
+            self.chess.move(Move((6, 0), (7, 0)))
+            self.chess.move(Move((0, 0), (1, 0)))
+            self.chess.move(Move((7, 0), (6, 0)))
+        self.assertEqual(self.chess.draw_counter, 22, "Counter for when game draws, does not work correctly")
+        self.chess.move(Move((1, 5), (2, 5)))
+        self.assertEqual(self.chess.draw_counter, 0, "Counter for when game draws, does reset for pawn move")
+
+    def test_draw_50_moves_interrupted_by_capture(self): # If repeated positions is included, this test will probably break. If this happens check above test as well
+        self.chess.move(Move((1, 1), (3, 1)))
+        # chess_util.print_board(self.chess.board)
+        self.chess.move(Move((7, 1), (5, 0)))
+        # chess_util.print_board(self.chess.board)
+        self.chess.move(Move((0, 2), (1, 1)))
+        # chess_util.print_board(self.chess.board)
+        self.chess.move(Move((5, 0), (4, 2)))
+        # chess_util.print_board(self.chess.board)
+        self.assertEqual(self.chess.draw_counter, 3, "Counter for when game draws, does not work correctly")
+        self.chess.move(Move((1, 1), (6, 6)))
+        self.assertEqual(self.chess.draw_counter, 0, "Counter for when game draws, does reset for capture move")
+
+        # TODO Volantary draw, repeated positions draw (probably not going to do these)
 
 # 1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 10 = queen
+    
+class TestChessForNode(unittest.TestCase):
+
+    def test_pack_chess(self):
+        packed_chess = chess_for_node.pack_chess(Chess())
+        # print(packed_chess)
+        # print(type(packed_chess))
+        self.assertIsNotNone(packed_chess)
+    
+    def test_unpack_chess(self):
+        packed_chess = chess_for_node.pack_chess(Chess())
+        unpacked_chess = chess_for_node.unpack_chess(packed_chess)
+        self.assertEqual(Chess(), unpacked_chess)
 
 if __name__ == '__main__':  # Does not work from PyCharm python console. Use terminal
     unittest.main()

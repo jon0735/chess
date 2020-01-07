@@ -443,10 +443,13 @@ def is_in_check(chess, player, king_pos=None):
 #                 pass
 
 class Move:
-    def __init__(self, frm, to, promote=None):
-        self.frm = frm
-        self.to = to
-        self.promote = promote
+    def __init__(self, frm, to, promote=None, move_dict=None):
+        if move_dict is None:
+            self.frm = frm
+            self.to = to
+            self.promote = promote
+        else:  # hacky way needed for chess_for_node.py
+            self.__dict__ = move_dict
     
     def __gt__(self, other_move):
         if isinstance(other_move, Move):
@@ -468,7 +471,13 @@ class Move:
 
     def __eq__(self, other_move):
         if isinstance(other_move, Move):
-            return self.frm == other_move.frm and self.to == other_move.to and self.promote == other_move.promote
+            if len(self.frm) != len(other_move.frm) or len(self.to) != len(other_move.to):
+                return False
+            return self.frm[0] == other_move.frm[0] \
+                and self.frm[1] == other_move.frm[1] \
+                and self.to[0] == other_move.to[0] \
+                and self.to[1] == other_move.to[1] \
+                and self.promote == other_move.promote
         else:
             return False
     
@@ -477,26 +486,76 @@ class Move:
 
 
 class Chess:
-    def __init__(self, set_start_params=True):
-        if set_start_params:
+    def __init__(self, chess_dict=None):#set_start_params=True):
+        if chess_dict is None:
             self.board = chess_util.get_start_board()
             self.in_turn = 1
             self.turn_num = 1
             self.is_in_progress = True
+            self.draw_counter = 0
             self.winner = None
             self.last_move = None
-            self.legal_castles = {'(0, 2)' : True, '(0, 6)' : True, '(7, 2)' : True, '(7, 6)' : True}
+            self.legal_castles = {'(0, 2)' : True, '(0, 6)' : True, '(7, 2)' : True, '(7, 6)' : True}  # String keys for easier node communication
             self.legal_moves = get_legal_moves(self, self.in_turn) # Make function just for start, to reduce init time
+        else: # hacky way needed for chess_for_node.py
+            self.__dict__ = chess_dict
+    
+    def __eq__ (self, other):
+        return np.array_equal(self.board, other.board) \
+            and self.in_turn == other.in_turn \
+            and self.turn_num == other.turn_num \
+            and self.is_in_progress == other.is_in_progress \
+            and self.draw_counter == other.draw_counter \
+            and self.winner == other.winner \
+            and self.last_move == other.last_move \
+            and self.legal_castles == other.legal_castles \
+            and np.array_equal(self.legal_moves, other.legal_moves) \
+        # # Good for debugging below
+        # if not np.array_equal(self.board, other.board):
+        #     print("Board")
+        #     return False
+        # if self.in_turn != other.in_turn:
+        #     print("in_turn")
+        #     return False
+        # if self.turn_num != other.turn_num:
+        #     print("turn_num")
+        #     return False
+        # if self.is_in_progress != other.is_in_progress:
+        #     print("is_in_progress")
+        #     return False
+        # if self.draw_counter != other.draw_counter:
+        #     print("draw_counter")
+        #     return False
+        # if self.winner != other.winner:
+        #     print("Winner")
+        #     return False
+        # if self.last_move != other.last_move:
+        #     print("last_move")
+        #     return False
+        # if self.legal_castles != other.legal_castles:
+        #     print("legal_castles")
+        #     return False
+        # if not np.array_equal(self.legal_moves, other.legal_moves):
+        #     print("legal_moves")
+        #     print(len(self.legal_moves))
+        #     print(len(other.legal_moves))
+        #     if len(self.legal_moves) == len(other.legal_moves): 
+        #         for i in range(len(self.legal_moves)):
+        #             print(self.legal_moves[i], ' : ', other.legal_moves[i])
+        #             # print(other.legal_moves)
+        #     return False
+        # return True
 
-        else: # Low cost init if one needs to reset everything anyway
-            self.board = None
-            self.in_turn = None
-            self.turn_num = None
-            self.is_in_progress = None
-            self.winner = None
-            self.legal_moves = None
-            self.last_move = None
-            self.legal_castles = None
+        # else: # Low cost init if one needs to reset everything anyway (e.g. called from node)
+        #     self.board = None
+        #     self.in_turn = None
+        #     self.turn_num = None
+        #     self.is_in_progress = None
+        #     self.draw_counter = None
+        #     self.winner = None
+        #     self.legal_moves = None
+        #     self.last_move = None
+        #     self.legal_castles = None
 
     def move(self, move):
         frm = move.frm
@@ -509,6 +568,7 @@ class Chess:
 
         backup_board = copy.deepcopy(self.board)  # backup to rollback if move puts player in check
 
+        resets_draw_counter = True if self.board[to] != 0 or abs(self.board[frm]) == 1 else False  # I.e. if pawn move or capture move
         self.board[to] = self.board[frm]
         self.board[frm] = 0
 
@@ -529,12 +589,16 @@ class Chess:
                 self.board[7, 7] = 0
         if msg == "Legal En Passant":
             self.board[to[0] - self.in_turn, to[1]] = 0
+            is_capture_move = True
 
         is_checked, from_pos = is_in_check(self, self.in_turn)
         if is_checked:
             self.board = backup_board
             return False, ("Illegal move due to check from pos " + str(from_pos))
-
+        if resets_draw_counter:
+            self.draw_counter = 0
+        else:
+            self.draw_counter += 1
         self.turn_num += 1
         self.in_turn = self.in_turn * -1
         self.legal_moves = get_legal_moves(self, self.in_turn)
@@ -549,10 +613,13 @@ class Chess:
             else:
                 msg += ", check from " + str(from_pos)
         elif len(self.legal_moves) == 0:  # No legal moves + not in check -> Game is a draw. Weird fucking rule. Forced into a no move position = draw -.-
-            msg += ", no legal moves this turn. Game is a draw"
+            msg += ", no legal moves this turn. Game is a stalemate which means the game is a draw"
+            self.is_in_progress = False
+        if self.draw_counter >= 50:
+            msg += ", no captures or pawn moves for 50 turns. Game is a draw"
             self.is_in_progress = False
         self.last_move = move
-        # Feels ugly and shitty
+        # Feels ugly and inefficient
         if frm == (0, 4):
             self.legal_castles['(0, 2)'] = False
             self.legal_castles['(0, 6)'] = False
