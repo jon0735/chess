@@ -25,20 +25,11 @@ function performPlayerMove(gameID, connID, move, validationString){
     }
     var game = active_games.get(gameID);
     var chess = game.chess;
-    console.log("Player Move Chess: ");
-    console.log(chess);
     var humanPlayer = game.humanPlayer;
     var rFrom = move.rFrom;
     var cFrom = move.cFrom;
     var rTo = move.rTo;
     var cTo = move.cTo;
-    // console.log("Data for script");
-    // console.log(chessString);
-    // console.log(humanPlayer);
-    // console.log(rFrom);
-    // console.log(cFrom);
-    // console.log(rTo);
-    // console.log(cTo);
 
     console.log("Just before starting python script");
     var process = spawn('python', [python_script_path,
@@ -53,8 +44,8 @@ function performPlayerMove(gameID, connID, move, validationString){
 
     process.stdout.on('data', (data) => {
         console.log("Return data from script (player move)");
+
         let data_obj = JSON.parse(data);
-        // console.log(data_obj);
         var socket = active_connections.get(data_obj.id);
         let status = data_obj.status;
         var response = {status: status, id: gameID, validation: validationString, msg: data_obj.msg};
@@ -69,8 +60,7 @@ function performPlayerMove(gameID, connID, move, validationString){
         } else {
             console.log("Move fail");
         }
-        // var response = {status: "done", validation: jsonMessage.validation};
-        // ws.send(JSON.stringify(response));
+
         var responseString = JSON.stringify(response);
         socket.send(responseString);
         console.log("response sent: " + responseString);
@@ -80,7 +70,6 @@ function performPlayerMove(gameID, connID, move, validationString){
 
 function requestAiMove(gameID, connID){
     console.log("requestAiMove. GameID: " + gameID + ", connID: " + connID);
-    //TODO
     if (!active_games.has(gameID)){
         //TODO load from memory
         if (!active_connections.has(connID)){
@@ -94,23 +83,19 @@ function requestAiMove(gameID, connID){
         return;
     }
     var game = active_games.get(gameID);
-    // console.log("STUFF" + JSON.stringify(game));
     var chess = game.chess; 
-    // var humanPlayer = game.humanPlayer;
-    // console.log("CHESS AS JSON: " + JSON.stringify(chess));
-    console.log("AI Move Chess: ");
-    console.log(chess);
+
     var process = spawn('python', [python_script_path,
         connID, //Not presently being used anywhere
         'ai',
         chess]);
     
     process.stdout.on('data', (data) => {
-        // console.log("Return data from script");
         let data_obj = JSON.parse(data);
+        // let data_obj = JSON.parse(data.toString());
         var socket = active_connections.get(data_obj.id);
         let status = data_obj.status;
-        var response = {status: status, id: gameID, msg: data_obj.msg}; // Considder including the validation string stuff
+        var response = {status: status, id: gameID, move: data_obj.move, msg: data_obj.msg}; // Considder including the validation string stuff
         if (status == 210){
             // response = {status: status, validation: validationString, msg: data_obj.msg};
             console.log("AI move success");
@@ -122,8 +107,7 @@ function requestAiMove(gameID, connID){
         } else {
             console.log("AI move fail");
         }
-        // var response = {status: "done", validation: jsonMessage.validation};
-        // ws.send(JSON.stringify(response));
+
         var responseString = JSON.stringify(response);
         socket.send(responseString);
         console.log("response sent: " + responseString);
@@ -146,11 +130,10 @@ function createNewGame(gameID, connID, humanPlayer){
         connID, // Not presently being used
         'create']);
 
-    // console.log("create process created");
 
     process.stdout.on('data', (data) => {
-        // console.log("Create response");
-        // console.log(JSON.parse(data));
+        console.log("Returned from make new game");
+        // console.log(data.toString());
         let data_obj = JSON.parse(data);
         let socket = active_connections.get(data_obj.id);
         let status = data_obj.status;
@@ -161,10 +144,6 @@ function createNewGame(gameID, connID, humanPlayer){
         let responseString = JSON.stringify(response); 
         socket.send(responseString);
         console.log("New game response sent: " + responseString);
-        console.log("New Game response Chess: ");
-        console.log(chess);
-        // console.log(active_games.keys());
-        // console.log(active_connections.keys());
     });
 
 
@@ -224,12 +203,6 @@ socket.on('connection', ws => {
         else {
             response = {status: "error"};
         }
-        
-        // var response = {status: "done", validation: jsonMessage.validation};
-        // ws.send(JSON.stringify(response));
-    //   var json = JSON.parse(message);
-    //   console.log(json);
-    //   sendstuff(json.deviceId, json.led, json.value );
     });
   });
 

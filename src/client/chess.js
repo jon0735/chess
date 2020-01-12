@@ -265,8 +265,15 @@ function attemptMove(rFrom, cFrom, rTo, cTo, special){
 function finishMove(){
     console.log("Finish move called")
     globalChess.move(moveInProgress.rFrom, moveInProgress.cFrom, moveInProgress.rTo, moveInProgress.cTo, moveInProgress.special);
-    waiting = false;
+    // waiting = false;
     console.log("TODO: finish move stuff");
+}
+
+function finishMove2(move){
+    console.log(move);
+    globalChess.move(move.frm[0], move.frm[1], move.to[0], move.to[1]);
+    waiting = false;
+    console.log("TODO: Finish ai move stuff");
 }
 
 function boardToString(board){
@@ -439,6 +446,7 @@ $(document).ready(() => {
             beginNewGame(response.id, response.humanPlayer);
         } else if (response.status == 210) {
             console.log("Recieved ai move from server");
+            finishMove2(response.move);
             //TODO ai move stuff
         } else{
             console.log("TODO: handle incorrect move correctly. Status: " + response.status);

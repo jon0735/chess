@@ -20,6 +20,7 @@ import chess.chess_for_node as chess_for_node
 import copy
 import unittest
 import numpy as np
+import random
 
 empty_nc_board = naught_util.get_empty_char_board()
 x_win_nc_board = np.array([['X', 'X', 'X'], ['O', 'O', ' '], [' ', ' ', ' ']])
@@ -1005,6 +1006,10 @@ class TestChess(unittest.TestCase):
         self.assertTrue(Move((3, 0), (2, 1)) in moves_list, "En passant move not identified by get legal moves function")
         self.assertTrue(Move((3, 2), (2, 1)) in moves_list, "En passant move not identified by get legal moves function")
 
+    def test_all_legal_moves(self):
+        for move in Chess().legal_moves:
+            success, msg = Chess().move(move)
+            self.assertTrue(success, "Legal move failed with message: " + msg + ": " + str(move))
     # Promote tests
 
     def test_promote_to_queen(self):
@@ -1377,6 +1382,23 @@ class TestChessForNode(unittest.TestCase):
         packed_chess = chess_for_node.pack_chess(Chess())
         unpacked_chess = chess_for_node.unpack_chess(packed_chess)
         self.assertEqual(Chess(), unpacked_chess)
+
+    def test_move_after_unpacking(self):
+        packed_chess = chess_for_node.pack_chess(Chess())
+        unpacked_chess = chess_for_node.unpack_chess(packed_chess)
+        # for move in unpacked_chess.legal_moves:
+        #     success, msg = Chess().move(move)
+        #     self.assertTrue(success, "Legal move failed with message: " + msg + ": " + str(move))
+        #     success, msg = unpacked_chess.move(move)
+        move = random.choice(unpacked_chess.legal_moves)
+        success, msg = unpacked_chess.move(move)
+        self.assertTrue(success, "Legal move failed with message: " + msg)
+
+    def test_make_ai_move(self):
+        packed_chess = chess_for_node.pack_chess(Chess())
+        result = chess_for_node.makeAiMove("22", packed_chess)
+
+
 
 if __name__ == '__main__':  # Does not work from PyCharm python console. Use terminal
     unittest.main()

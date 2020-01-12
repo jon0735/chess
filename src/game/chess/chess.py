@@ -185,6 +185,8 @@ def _is_legal_move(chess, move, in_turn):
     if _is_outside_board(to):
         return False, "\"to\" pos outside board"
     piece = board[frm]
+    # print(move)
+    # print(piece)
     if piece == 0:
         return False, "Empty square selected"
     piece_type = abs(piece)
@@ -373,16 +375,16 @@ def get_legal_moves(chess, player):
     if player == 1 and board[0, 4] == 100:
         left_castle = Move((0, 4), (0, 2))
         right_castle = Move((0, 4), (0, 6))
-        if chess.legal_castles['(0, 2)'] and _is_legal_move(chess, left_castle, 1):
+        if chess.legal_castles['(0, 2)'] and _is_legal_move(chess, left_castle, 1)[0]: # [0] to get the bool value and ignore the returned message
             legal_moves.append(left_castle)
-        if chess.legal_castles['(0, 6)'] and _is_legal_move(chess, right_castle, 1):
+        if chess.legal_castles['(0, 6)'] and _is_legal_move(chess, right_castle, 1)[0]:
             legal_moves.append(right_castle)
     elif player == -1 and chess.board[7, 4] == -100:
         left_castle = Move((7, 4), (7, 2))
         right_castle = Move((7, 4), (7, 6))
-        if chess.legal_castles['(7, 2)'] and _is_legal_move(chess, left_castle, -1):
+        if chess.legal_castles['(7, 2)'] and _is_legal_move(chess, left_castle, -1)[0]:
             legal_moves.append(left_castle)
-        if chess.legal_castles['(7, 6)'] and _is_legal_move(chess, right_castle, -1):
+        if chess.legal_castles['(7, 6)'] and _is_legal_move(chess, right_castle, -1)[0]:
             legal_moves.append(right_castle)
     # En passant handling
     if chess.last_move is not None:
@@ -450,6 +452,8 @@ class Move:
             self.promote = promote
         else:  # hacky way needed for chess_for_node.py
             self.__dict__ = move_dict
+            self.frm = tuple(self.frm)
+            self.to = tuple(self.to)
     
     def __gt__(self, other_move):
         if isinstance(other_move, Move):
@@ -558,52 +562,60 @@ class Chess:
         #     self.last_move = None
         #     self.legal_castles = None
 
-    def move(self, move, debug=False):
-        # if debug:
-        #     print("stuff0")
+    def move(self, move, debug=False, return_extra=False):
+        if return_extra:
+            extra = {'promote': move.promote, 'en passant': False, 'castle': False}
         frm = move.frm
         to = move.to
         if not self.is_in_progress:
             return False, "Game already concluded"
-        # if debug:
-        #     print("stuff0")
+ 
         legal, msg = _is_legal_move(self, move, self.in_turn) # TODO Chess_for_node crashes here Write tests
-        # if debug:
-        #     print("stuff0")
+
         if not legal:
             return False, msg
-        if debug:
-            print("stuff0")
+        # if debug:
+        #     print("stuff0")
         backup_board = copy.deepcopy(self.board)  # backup to rollback if move puts player in check
 
-        if debug:
-            print("stuff42")
+        # if debug:
+        #     print("stuff42")
 
         resets_draw_counter = True if self.board[to] != 0 or abs(self.board[frm]) == 1 else False  # I.e. if pawn move or capture move
         self.board[to] = self.board[frm]
         self.board[frm] = 0
-        if debug:
-            print("stuff1")
+        # if debug:
+        #     print("stuff1")
         if move.promote is not None and move.promote in [1, 2, 3, 4, 10]:
             self.board[to] = move.promote * self.in_turn
         if msg == "Legal castling move":  # move.castle:
             if to == (0, 2):
                 self.board[0, 3] = 2
                 self.board[0, 0] = 0
+                if return_extra:
+                    extra['castle'] =[(0, 0), (0, 3)] 
             elif to == (0, 6):
                 self.board[0, 5] = 2
                 self.board[0, 7] = 0
+                if return_extra:
+                    extra['castle'] =[(0, 7), (0, 5)] 
             elif to == (7, 2):
                 self.board[7, 3] = -2
                 self.board[7, 0] = 0
+                if return_extra:
+                    extra['castle'] =[(7, 0), (7, 3)] 
             elif to == (7, 6):
                 self.board[7, 5] = -2
                 self.board[7, 7] = 0
+                if return_extra:
+                    extra['castle'] =[(7, 7), (7, 5)] 
         if msg == "Legal En Passant":
             self.board[to[0] - self.in_turn, to[1]] = 0
             is_capture_move = True
-        if debug:
-            print("2")
+            if return_extra:
+                extra['en passant'] = (to[0] - self.in_turn, to[1])
+        # if debug:
+        #     print("2")
         is_checked, from_pos = is_in_check(self, self.in_turn)
         if is_checked:
             self.board = backup_board
@@ -647,5 +659,7 @@ class Chess:
             self.legal_castles['(7, 2)'] = False
         elif frm == (7, 7):
             self.legal_castles['(7, 6)'] = False
+        if return_extra:
+            return True, msg, extra
         return True, msg
 
