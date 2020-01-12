@@ -510,6 +510,7 @@ class Chess:
             and self.last_move == other.last_move \
             and self.legal_castles == other.legal_castles \
             and np.array_equal(self.legal_moves, other.legal_moves) \
+        
         # # Good for debugging below
         # if not np.array_equal(self.board, other.board):
         #     print("Board")
@@ -557,21 +558,32 @@ class Chess:
         #     self.last_move = None
         #     self.legal_castles = None
 
-    def move(self, move):
+    def move(self, move, debug=False):
+        # if debug:
+        #     print("stuff0")
         frm = move.frm
         to = move.to
         if not self.is_in_progress:
             return False, "Game already concluded"
-        legal, msg = _is_legal_move(self, move, self.in_turn)
+        # if debug:
+        #     print("stuff0")
+        legal, msg = _is_legal_move(self, move, self.in_turn) # TODO Chess_for_node crashes here Write tests
+        # if debug:
+        #     print("stuff0")
         if not legal:
             return False, msg
-
+        if debug:
+            print("stuff0")
         backup_board = copy.deepcopy(self.board)  # backup to rollback if move puts player in check
+
+        if debug:
+            print("stuff42")
 
         resets_draw_counter = True if self.board[to] != 0 or abs(self.board[frm]) == 1 else False  # I.e. if pawn move or capture move
         self.board[to] = self.board[frm]
         self.board[frm] = 0
-
+        if debug:
+            print("stuff1")
         if move.promote is not None and move.promote in [1, 2, 3, 4, 10]:
             self.board[to] = move.promote * self.in_turn
         if msg == "Legal castling move":  # move.castle:
@@ -590,7 +602,8 @@ class Chess:
         if msg == "Legal En Passant":
             self.board[to[0] - self.in_turn, to[1]] = 0
             is_capture_move = True
-
+        if debug:
+            print("2")
         is_checked, from_pos = is_in_check(self, self.in_turn)
         if is_checked:
             self.board = backup_board

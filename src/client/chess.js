@@ -1,7 +1,10 @@
-const squareLength = 80; // MUST be 80 or integer stuff and images will break down
+// import { json } from "body-parser";
+
+const squareLength = 80; // MUST be 80 or integer stuff and images will break down. TODO: fix
 const lineWidth = 2;
 var globalChess = null;
 var selectedPiece = null;
+var id = null;
 var boardStartX;
 var boardStartY;
 var waiting = false;
@@ -9,15 +12,18 @@ var webSocket;
 var moveInProgress;
 
 class Chess {
-    constructor(humanPlayer, board){
+    constructor(humanPlayer, board, inTurn){
         if (board === undefined){
             board = getStartBoard();
         }
         if (humanPlayer === undefined){
             humanPlayer = 1;
         }
+        if (inTurn === undefined){
+            inTurn = 1;
+        }
         this.board = board;
-        this.inTurn = 1;
+        this.inTurn = inTurn;
         this.humanPlayer = humanPlayer;
     }
 
@@ -164,7 +170,6 @@ function drawHtmlPieces(chess){ // should always call deleteHtmlPieces before
     }
 }
 
-// TODO MOVE PIECES
 function enemyPieceEventHandler(event){
     if (waiting){
         console.log("Move in progress. Wait before doing more shit");
@@ -249,7 +254,9 @@ function attemptMove(rFrom, cFrom, rTo, cTo, special){
     var validation = {boardString: boardString, 
                       inTurn: globalChess.inTurn,
                       humanPlayer: globalChess.humanPlayer};
-    var message = {move: move,
+    var message = {action: 'player move',  // codes might be more efficient (but will lower readability)
+                   move: move,
+                   id: id,
                    validation: validation}
     webSocket.send(JSON.stringify(message));
     // finishMove();
@@ -379,6 +386,12 @@ function drawChessBoard(canvas){
     }
 }
 
+function beginNewGame(newId, humanPlayer){
+    id = newId;
+    var chess = new Chess(humanPlayer);
+    drawHtmlPieces(chess);
+    globalChess = chess;
+}
 
 $(document).ready(() => {
     const protocol = document.location.protocol.startsWith('https') ? 'wss://' : 'ws://';
@@ -391,6 +404,7 @@ $(document).ready(() => {
     });
 
     document.getElementById("loadGameButton").addEventListener("click", () => {
+        console.log("TODO: Fix load button");
         deleteHtmlPieces(globalChess);
     });
 
@@ -398,20 +412,37 @@ $(document).ready(() => {
         if (globalChess != null){
             deleteHtmlPieces(globalChess);
         }
-        var chess = new Chess();
-        drawHtmlPieces(chess);
-        globalChess = chess;
+        var newID = (Math.random().toString(36)+'00000000000000000').slice(2, 10);
+        newID = prompt("Choose Instance ID", newID);
+        var message = {action: "new game",
+                       id: newID,
+                       humanPlayer: 1}; //TODO: Fix for humna playing as black
+        webSocket.send(JSON.stringify(message));
+        // var stuff = confirm("stuff");
+        // var chess = new Chess();
+        // drawHtmlPieces(chess);
+        // globalChess = chess;
     });
 
     webSocket.onmessage = (event) => {
         console.log("socket message received ", JSON.parse(event.data));
-        var respone = JSON.parse(event.data);
-        if(respone.status == "done"){
+        var response = JSON.parse(event.data);
+        if(response.status == 200){ // Not a secure way of handling a successful move
+            console.log("TODO: check stuff when move is success (ID and stuff)");
             console.log("success");
             finishMove();
+            // Asking for ai move
+            var message = {action: "ai move",
+                           id: id};
+            webSocket.send(JSON.stringify(message));
+        } else if (response.status == 201){
+            beginNewGame(response.id, response.humanPlayer);
+        } else if (response.status == 210) {
+            console.log("Recieved ai move from server");
+            //TODO ai move stuff
         } else{
-            console.log("TODO: handle incorrect move correctly");
-            moveElementCell = Null;
+            console.log("TODO: handle incorrect move correctly. Status: " + response.status);
+            // moveElementCell = null;
             waiting = false;
         }
     }
@@ -421,7 +452,10 @@ $(document).ready(() => {
     var canvasRect = canvas.getBoundingClientRect();
     boardStartX = canvasRect.left + .5 * squareLength + .5 * lineWidth;
     boardStartY = canvasRect.top + .5 * squareLength + .5 * lineWidth;
-    console.log(boardStartX, boardStartY);
+    // console.log(boardStartX, boardStartY);
 
     canvas.addEventListener('click', boardEventHandler);
 });
+
+
+// TODO: let player play as black

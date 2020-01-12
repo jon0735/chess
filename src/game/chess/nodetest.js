@@ -48,6 +48,19 @@ function create(id){
     });
 }
 
+function aiMove(){
+    var process = spawn('python', ["./chess_for_node.py",
+                        '22',
+                        'ai']); 
+    process.stdout.on('data', (data) => {
+        console.log("ai response");
+        console.log(JSON.parse(data));
+        console.log("ai MEH");
+        let data_obj = JSON.parse(data);
+        // TODO: Check data and call appropriate functions
+        chess_obj = data_obj.chess;
+    });  
+}
 
 
 //TESTING
@@ -57,9 +70,9 @@ setTimeout( () => {
     move(1, 3, 3, 3, chess_obj, '22');
     console.log(chess_obj);
 }, 3000);
-// setTimeout( () => {
-//     move(6, 3, 4, 3, chess_obj, '22');
-// }, 2000);
+setTimeout( () => {
+    aiMove();
+}, 6000);
 // setTimeout( () => {
 //     move(0, 4, 1, 3, chess_obj, '22');
 // }, 3000);
