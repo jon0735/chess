@@ -27,14 +27,21 @@ class Chess {
         this.humanPlayer = humanPlayer;
     }
 
-    move(rFrom, cFrom, rTo, cTo, special){
+    move(move){
+        var rFrom = move.rFrom;
+        var cFrom = move.cFrom;
+        var rTo = move.rTo;
+        var cTo = move.cTo;
+        var promote = move.promote;
+        var enPassant = move.enPassant;
+        var castle = move.castle;
         if(this.board[rFrom][cFrom] == null){
             console.log("Attempted move on non existant piece")
             return;
         }
-        if (!(special == undefined || special == null)){
-            console.log("TODO Handle special move events (castle and that other one)");
-        }
+        // if (!(special == undefined || special == null)){
+        //     console.log("TODO Handle special move events (castle and that other one)");
+        // }
         var movedPiece = this.board[rFrom][cFrom];
         var htmlElement = movedPiece.htmlElement;
         htmlElement.style.outline = 'none';
@@ -50,7 +57,34 @@ class Chess {
         this.board[rTo][cTo] = movedPiece;
         selectedPiece = null;
         moveElementCell(htmlElement, rTo, cTo);
-
+        if (promote != null) {
+            var type;
+            if (promote == 2){
+                type = 'R';
+            } else if (promote == 3) {
+                type = 'N';
+            } else if (promote == 4) {
+                type = 'B';
+            } else if (promote == 10) {
+                type = 'Q';
+            } else {
+                console.log("FATAL ERROR: Illegal promote arg: " + promote);
+                return;
+            }
+            this.board[rTo][cTo] = new Piece(type, movedPiece.type, rTo, cTo);
+            var offset = document.getElementById("board_div").getBoundingClientRect();
+            var top = offset.top;
+            var left = offset.left;
+            deleteHtmlPiece(this, rTo, cTo);
+            drawHtmlPiece(this, rTo, cTo, top, left);
+            console.log("Handle promotion");
+        }
+        if (enPassant != null) {
+            console.log("Handle En Passant");
+        }
+        if (castle != null){
+            console.log("Handle castling");
+        }
     }
 }
 
@@ -128,46 +162,95 @@ function deleteHtmlPieces(chess){
     }
 }
 
-function drawHtmlPieces(chess){ // should always call deleteHtmlPieces before
-    console.log("draw called");
+function deleteHtmlPiece(chess, r, c){
     var board = chess.board;
+    var piece = board[r][c];
+    if (piece == null){
+        console.log("Piece is null. Continuing");
+        return;
+    }
+    var htmlElement = piece.htmlElement;
+    if (htmlElement == null){
+        console.log("Html element is null. Continuing");
+        return;
+    }
+    htmlElement.parentNode.removeChild(htmlElement);
+    piece.htmlElement = null;
+}
+
+function drawHtmlPieces(chess){ // should always call deleteHtmlPieces before
+    // console.log("draw called");
+    // var board = chess.board;
     var offset = document.getElementById("board_div").getBoundingClientRect();
     var top = offset.top;
     var left = offset.left;
     // console.log("before loop");
     for (var r = 0; r < 8; r++){
         for (var c = 0; c < 8; c++){
+            drawHtmlPiece(chess, r, c, top, left)
             // console.log("loop: " + r + ", " + c);
-            var piece = board[r][c];
-            // console.log("stuff " + piece);
-            if (piece == null){
-                continue;
-            }
-            var htmlElement = piece.htmlElement;
-            if (htmlElement == null){
-                // console.log("Start html null");
-                // console.log(getPieceImageName(piece));
-                var pieceImg = document.createElement('img');
-                pieceImg.src = "resources/" + getPieceImageName(piece);
-                pieceImg.style.transitionTimingFunction = "linear";
-                pieceImg.style.zIndex = 1;
-                pieceImg.style.position = "absolute";
-                pieceImg.style.left = Math.round(left + 0.5 * lineWidth + squareLength * (c + .5));
-                pieceImg.style.top = Math.round(top + 0.5 * lineWidth + squareLength * (7.5 - r));
-                document.getElementById("chess_div_right").appendChild(pieceImg);
-                piece.htmlElement = pieceImg;
-                // console.log("End html null");
-            } else{
-                console.log("Existing Piece found while drawing. Someone fucked up");
-            }
-            if (piece.team == chess.humanPlayer){
-                piece.htmlElement.addEventListener('click', ownPieceEventHandler);
-            } else {
-                piece.htmlElement.addEventListener('click', enemyPieceEventHandler);
-            }
-            piece.htmlElement.piece = piece;
+            // var piece = board[r][c];
+            // // console.log("stuff " + piece);
+            // if (piece == null){
+            //     continue;
+            // }
+            // var htmlElement = piece.htmlElement;
+            // if (htmlElement == null){
+            //     // console.log("Start html null");
+            //     // console.log(getPieceImageName(piece));
+            //     var pieceImg = document.createElement('img');
+            //     pieceImg.src = "resources/" + getPieceImageName(piece);
+            //     pieceImg.style.transitionTimingFunction = "linear";
+            //     pieceImg.style.zIndex = 1;
+            //     pieceImg.style.position = "absolute";
+            //     pieceImg.style.left = Math.round(left + 0.5 * lineWidth + squareLength * (c + .5));
+            //     pieceImg.style.top = Math.round(top + 0.5 * lineWidth + squareLength * (7.5 - r));
+            //     document.getElementById("chess_div_right").appendChild(pieceImg);
+            //     piece.htmlElement = pieceImg;
+            //     // console.log("End html null");
+            // } else{
+            //     console.log("Existing Piece found while drawing. Someone fucked up");
+            // }
+            // if (piece.team == chess.humanPlayer){
+            //     piece.htmlElement.addEventListener('click', ownPieceEventHandler);
+            // } else {
+            //     piece.htmlElement.addEventListener('click', enemyPieceEventHandler);
+            // }
+            // piece.htmlElement.piece = piece;
         }
     }
+}
+
+function drawHtmlPiece(chess, r, c, top, left){
+    var board = chess.board;
+    var piece = board[r][c];
+    // console.log("stuff " + piece);
+    if (piece == null){
+        return;
+    }
+    var htmlElement = piece.htmlElement;
+    if (htmlElement == null){
+        // console.log("Start html null");
+        // console.log(getPieceImageName(piece));
+        var pieceImg = document.createElement('img');
+        pieceImg.src = "resources/" + getPieceImageName(piece);
+        pieceImg.style.transitionTimingFunction = "linear";
+        pieceImg.style.zIndex = 1;
+        pieceImg.style.position = "absolute";
+        pieceImg.style.left = Math.round(left + 0.5 * lineWidth + squareLength * (c + .5));
+        pieceImg.style.top = Math.round(top + 0.5 * lineWidth + squareLength * (7.5 - r));
+        document.getElementById("chess_div_right").appendChild(pieceImg);
+        piece.htmlElement = pieceImg;
+        // console.log("End html null");
+    } else{
+        console.log("Existing Piece found while drawing. Someone fucked up");
+    }
+    if (piece.team == chess.humanPlayer){
+        piece.htmlElement.addEventListener('click', ownPieceEventHandler);
+    } else {
+        piece.htmlElement.addEventListener('click', enemyPieceEventHandler);
+    }
+    piece.htmlElement.piece = piece;
 }
 
 function enemyPieceEventHandler(event){
@@ -181,7 +264,16 @@ function enemyPieceEventHandler(event){
 
     if (selectedPiece != null){
         console.log("Attempt move");
-        attemptMove(selectedPiece.row, selectedPiece.column, piece.row, piece.column);
+        var move = {
+            rFrom: selectedPiece.row,
+            cFrom: selectedPiece.column,
+            rTo: piece.row,
+            cTo: piece.column,
+            promote: null,
+            enPassant: null,
+            castle: null};
+            attemptMove(move);
+        // attemptMove(selectedPiece.row, selectedPiece.column, piece.row, piece.column);
         // moveElement(htmlPiece, 200, 200);
     }
 }
@@ -191,6 +283,7 @@ function ownPieceEventHandler(event){
         console.log("Move in progress. Wait before doing more shit");
         return;
     }
+    // waiting = true;
     var htmlPiece = event.target;
     htmlPiece.style.zIndex = 5;
     var piece = htmlPiece.piece;
@@ -206,6 +299,7 @@ function ownPieceEventHandler(event){
     htmlPiece.style.outline = '2px solid red'
     // htmlPiece.style.backgroundColor = "#FDFF47";
     selectedPiece = piece;
+    // waiting = false;
 }
 
 function boardEventHandler(event){
@@ -213,6 +307,7 @@ function boardEventHandler(event){
         console.log("Move in progress. Wait before doing more shit");
         return;
     }
+    // waiting = true;
     // console.log("Event " + event.clientX + " : " + event.clientY);
     var rect = event.target.getBoundingClientRect();
     var x = event.clientX - rect.left; //x position within the element.
@@ -230,7 +325,14 @@ function boardEventHandler(event){
     var cTo = Math.floor((x - .5 * squareLength) / squareLength);
     var rFrom = selectedPiece.row;
     var cFrom = selectedPiece.column;
-    attemptMove(rFrom, cFrom, rTo, cTo);
+    var move = {rFrom: rFrom,
+        cFrom: cFrom,
+        rTo: rTo,
+        cTo: cTo,
+        promote: null,
+        enPassant: null,
+        castle: null};
+    attemptMove(move);
 }
 
 function rowColumnToChessNotation(row, column){
@@ -238,16 +340,15 @@ function rowColumnToChessNotation(row, column){
     return [letters[column], row + 1];
 }
 
-function attemptMove(rFrom, cFrom, rTo, cTo, special){
+function attemptMove(move){
     waiting = true;
-    if (special == undefined){
-        special = null;
-    }
-    var move = {rFrom: rFrom,
-                cFrom: cFrom,
-                rTo: rTo,
-                cTo: cTo,
-                special: special};
+    // var move = {rFrom: rFrom,
+    //             cFrom: cFrom,
+    //             rTo: rTo,
+    //             cTo: cTo,
+    //             promote: null,
+    //             enPassant: null,
+    //             castle: null}; // TODO: Fix promote
     moveInProgress = move;
     var boardString = boardToString(globalChess.board);
     // console.log(boardString);
@@ -262,16 +363,28 @@ function attemptMove(rFrom, cFrom, rTo, cTo, special){
     // finishMove();
 }
 
-function finishMove(){
-    console.log("Finish move called")
-    globalChess.move(moveInProgress.rFrom, moveInProgress.cFrom, moveInProgress.rTo, moveInProgress.cTo, moveInProgress.special);
+function promotionMove(promote){
+    moveInProgress.promote = promote;
+    attemptMove(moveInProgress);
+}
+
+function finishMove(move){
+    console.log("Finish move called");
+    globalChess.move(move);
     // waiting = false;
     console.log("TODO: finish move stuff");
 }
 
 function finishMove2(move){
     console.log(move);
-    globalChess.move(move.frm[0], move.frm[1], move.to[0], move.to[1]);
+    // var moveDict = {rFrom: move.frm[0],
+    //     cFrom: move.frm[1],
+    //     rTo: move.to[0],
+    //     cTo: move.to[1],
+    //     promote: null,
+    //     enPassant: null,
+    //     castle: null};
+    globalChess.move(move);
     waiting = false;
     console.log("TODO: Finish ai move stuff");
 }
@@ -395,6 +508,9 @@ function drawChessBoard(canvas){
 
 function beginNewGame(newId, humanPlayer){
     id = newId;
+    if (chess != null){
+        deleteHtmlPieces(chess);
+    }
     var chess = new Chess(humanPlayer);
     drawHtmlPieces(chess);
     globalChess = chess;
@@ -412,7 +528,12 @@ $(document).ready(() => {
 
     document.getElementById("loadGameButton").addEventListener("click", () => {
         console.log("TODO: Fix load button");
-        deleteHtmlPieces(globalChess);
+        var promoteBox = document.getElementById("promoteBox");
+        promoteBox.style.display = "block";
+        setTimeout( () => {
+            promoteBox.style.display = "none";
+        }, 5000);
+        // deleteHtmlPieces(globalChess);
     });
 
     document.getElementById("newGameButton").addEventListener("click", () => {
@@ -423,7 +544,8 @@ $(document).ready(() => {
         newID = prompt("Choose Instance ID", newID);
         var message = {action: "new game",
                        id: newID,
-                       humanPlayer: 1}; //TODO: Fix for humna playing as black
+                       humanPlayer: 1}; //TODO: Fix for human playing as black
+        console.log(newID);
         webSocket.send(JSON.stringify(message));
         // var stuff = confirm("stuff");
         // var chess = new Chess();
@@ -431,25 +553,53 @@ $(document).ready(() => {
         // globalChess = chess;
     });
 
+    document.getElementById("promoteRookButton").addEventListener("click", () => {
+        document.getElementById("promoteBox").style.display = 'none';
+        promotionMove(2);
+    });
+
+    document.getElementById("promoteKnightButton").addEventListener("click", () => {
+        document.getElementById("promoteBox").style.display = 'none';
+        promotionMove(3);
+    });
+
+    document.getElementById("promoteBishopButton").addEventListener("click", () => {
+        document.getElementById("promoteBox").style.display = 'none';
+        promotionMove(4);
+    });
+
+    document.getElementById("promoteQueenButton").addEventListener("click", () => {
+        document.getElementById("promoteBox").style.display = 'none';
+        promotionMove(10);
+    });
+
     webSocket.onmessage = (event) => {
         console.log("socket message received ", JSON.parse(event.data));
         var response = JSON.parse(event.data);
-        if(response.status == 200){ // Not a secure way of handling a successful move
+        var status = response.status
+        if(status == 200){ // Not a secure way of handling a successful move
             console.log("TODO: check stuff when move is success (ID and stuff)");
             console.log("success");
-            finishMove();
+            finishMove(moveInProgress); // TODO: better to get move from server? (less state to handle here)
             // Asking for ai move
             var message = {action: "ai move",
                            id: id};
             webSocket.send(JSON.stringify(message));
-        } else if (response.status == 201){
+        } else if (status == 201){
             beginNewGame(response.id, response.humanPlayer);
-        } else if (response.status == 210) {
+        } else if (status == 210) {
             console.log("Recieved ai move from server");
-            finishMove2(response.move);
+            finishMove(response.move);
+            waiting = false;
             //TODO ai move stuff
+        } else if (status == 220){
+            console.log("Needs promotion argument");
+            var promoteBox = document.getElementById("promoteBox");
+            promoteBox.style.zIndex = 10;
+            promoteBox.style.display = "block";
+            // waiting = false;
         } else{
-            console.log("TODO: handle incorrect move correctly. Status: " + response.status);
+            console.log("Illegal move. Status: " + response.status + ", with message: " + response.msg);
             // moveElementCell = null;
             waiting = false;
         }
@@ -467,3 +617,4 @@ $(document).ready(() => {
 
 
 // TODO: let player play as black
+// TODO: Refactor css 

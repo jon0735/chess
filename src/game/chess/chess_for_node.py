@@ -61,7 +61,8 @@ def makeMove(chess_json, move, id):
 
         success, msg = chess.move(move)
         status = 200 if success else 400
-
+        if status == 400 and msg.startswith('Illegal choice for pawn promotion'):
+            status = 220
         chess_result = pack_chess(chess) 
         return {"status" : status, "chess" : chess_result, "id" : id, "msg" : msg}
     except Exception as e:
@@ -78,8 +79,11 @@ def makeAiMove(id, chess_json):
         if status == 400:
             msg += ". This can only happen due to incompetent programming"
         chess_result = pack_chess(chess)
-        move_info['frm'] = move.frm
-        move_info['to'] = move.to
+        move_info['rFrom'] = move.frm[0]
+        move_info['cFrom'] = move.frm[1]
+        move_info['rTo'] = move.to[0]
+        move_info['cTo'] = move.to[1]
+
         return {"status" : status, "chess" : chess_result, "id" : id, "move": move_info, "msg" : msg}
     except Exception as e:
         # traceback.print_exc()
@@ -104,7 +108,9 @@ if __name__ == '__main__' and (len(sys.argv) > 1):
         result = getNewGame(client_id)
         print(json.dumps(result))
     elif func == 'move':
-        move = Move((int(sys.argv[3]), int(sys.argv[4])), (int(sys.argv[5]), int(sys.argv[6])))
+        promote_arg = int(sys.argv[9])
+        promote = None if promote_arg == 0 else promote_arg
+        move = Move((int(sys.argv[3]), int(sys.argv[4])), (int(sys.argv[5]), int(sys.argv[6])), promote=promote)
         result = makeMove(sys.argv[7], move, client_id)
         print(json.dumps(result))
     elif func == 'ai':

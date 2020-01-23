@@ -30,6 +30,10 @@ function performPlayerMove(gameID, connID, move, validationString){
     var cFrom = move.cFrom;
     var rTo = move.rTo;
     var cTo = move.cTo;
+    var promote = move.promote;
+    if (promote == null){
+        promote = 0;
+    }
 
     console.log("Just before starting python script");
     var process = spawn('python', [python_script_path,
@@ -40,7 +44,8 @@ function performPlayerMove(gameID, connID, move, validationString){
         rTo,
         cTo,
         chess,
-        humanPlayer]);
+        humanPlayer,
+        promote]);
 
     process.stdout.on('data', (data) => {
         console.log("Return data from script (player move)");
@@ -57,8 +62,10 @@ function performPlayerMove(gameID, connID, move, validationString){
             var humanPlayer = game.humanPlayer;
             active_games.set(gameID, {chess: chess, humanPlayer: humanPlayer});
             console.log("Server side chess updated");
+        } else if (status == 220) {
+            console.log("Promotion argument needed");
         } else {
-            console.log("Move fail");
+            console.log("Move Failed");
         }
 
         var responseString = JSON.stringify(response);
@@ -211,3 +218,12 @@ socket.on('connection', ws => {
 // TODO: Obvious security roblem in just using game ID for everything (e.g. can just try to load a ton of different IDs)
 // TODO: Surround parsing in try-catch to avoid server crash when illigeal information fed through sockets.
 // TODO: Safeguard against injection attacks in player move
+
+// Codes:
+// 200 - Succesful player rmove
+// 201 - Game created
+// 210 - Succesful ai move
+// 220 - promotion argument needed
+// 400 - Illegal move
+// 500 - Parsing error in the python script
+// 529 - No such game ID on the server side

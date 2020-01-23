@@ -133,13 +133,13 @@ def _is_legal_castling(chess, move):
     if frm == (0, 4) or frm == (7, 4):
         row = frm[0]  # 0 if white move, 7 if black. Using this variable allows using same code for both colors below
         if to == (row, 2):  # If castling left
-            if not (board[row, 1] == 0 and board[row, 3] == 0): #  If board[0, 2] != 0 it will fail on a check for same piece on 'to' location
+            if not (board[row, 1] == 0 and board[row, 2] == 0 and board[row, 3] == 0): #  All spots between and on must be empty
                 return False, "Castling blocked by piece(s) between rook and king"
             is_attacked, _ = is_in_check(chess, player, king_pos=(row, 3))
             if is_attacked:
                 return False, "King moves through attacked pos"
         elif to == (row, 6):  # If castling right
-            if not (board[row, 5] == 0):  #  If board[0, 6] != 0 it will fail on a check for same piece on 'to' location
+            if not (board[row, 5] == 0 and board[row, 6] == 0):  #  If board[0, 6] != 0 it will fail on a check for same piece on 'to' location
                 return False, "Castling blocked by piece(s) between rook and king"
             is_attacked, _ = is_in_check(chess, player, king_pos=(row, 5))
             if is_attacked:
@@ -425,7 +425,14 @@ def is_in_check(chess, player, king_pos=None):
     for i, row in enumerate(board):
         for j, piece in enumerate(row):
             if piece * player < 0:  # This means the piece is the opponents.
-                legal, msg = _is_legal_move(chess, Move((i, j), king_pos), player * -1)
+                promote_arg = 10 if (abs(piece) == 1 and i + 2.5 * player == 3.5) else None  # Checks if promote arg needs to be included in Move. i + 2.5 * player == 3.5 means that the pawn is at the row just before the final
+                legal, msg = _is_legal_move(chess, Move((i, j), king_pos, promote=promote_arg), player * -1)
+                # if i == 6 and j == 5:
+                #     # chess_util.print_board(chess.board)
+                #     print(i - 2.5 * player)
+                #     print(legal)
+                #     print(msg)
+
                 if legal:
                     return True, (i, j)
     return False, None
@@ -564,7 +571,7 @@ class Chess:
 
     def move(self, move, debug=False, return_extra=False):
         if return_extra:
-            extra = {'promote': move.promote, 'en passant': False, 'castle': False}
+            extra = {'promote': move.promote, 'enPassant': None, 'castle': None}
         frm = move.frm
         to = move.to
         if not self.is_in_progress:
@@ -613,7 +620,7 @@ class Chess:
             self.board[to[0] - self.in_turn, to[1]] = 0
             is_capture_move = True
             if return_extra:
-                extra['en passant'] = (to[0] - self.in_turn, to[1])
+                extra['enPassant'] = (to[0] - self.in_turn, to[1])
         # if debug:
         #     print("2")
         is_checked, from_pos = is_in_check(self, self.in_turn)

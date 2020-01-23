@@ -829,6 +829,13 @@ class TestChess(unittest.TestCase):
         success, msg = self.empty_chess.move(Move((1, 1), (2, 1)))
         self.assertFalse(success, "failed with msg: " + msg)
 
+    def test_illegal_in_check_move2(self): # Included due to error in chess.py._is_in_check due to missing promotion arg for pawns when checking if a move to king is legal
+        self.chess.board[5, 4] = 1
+        success, msg = self.chess.move(Move((5, 4), (6, 5)))
+        self.assertTrue(success, "legal pawn attack move failed with message " + msg)
+        success, msg = self.chess.move(Move((7, 1), (5, 0)))
+        self.assertFalse(success, "No action taken to stop check from white pawn")
+
     # Test check mate
     def test_check_mate(self):
         self.empty_chess.board[0, 0] = -100
@@ -1267,6 +1274,20 @@ class TestChess(unittest.TestCase):
         self.chess.in_turn = -1
         success, _ = self.chess.move(Move((7, 4), (7, 6)))
         self.assertFalse(success, "Castling allowed even though king moves through attacked square")
+
+    def test_illegal_castle_black_right_blocked_by_white(self):
+        self.chess.board[7, 6] = 3
+        self.chess.board[7, 5] = 0
+        self.chess.in_turn = -1
+        success, msg = self.chess.move(Move((7, 4), (7, 6)))
+        self.assertFalse(success, "King allowed to castle to enemy piece")
+
+    def test_illegal_castle_black_left_blocked_by_white(self):
+        self.chess.board[7, 2] = 3
+        self.chess.board[7, 5] = 0
+        self.chess.in_turn = -1
+        success, msg = self.chess.move(Move((7, 4), (7, 6)))
+        self.assertFalse(success, "King allowed to castle to enemy piece")
 
     # En Passant
     def test_en_passent_white(self):
