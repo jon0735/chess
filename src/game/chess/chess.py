@@ -574,15 +574,19 @@ class Chess:
             extra = {'promote': move.promote, 'enPassant': None, 'castle': None}
         frm = move.frm
         to = move.to
+        # if to[0] == 7:
+        #     print("STUFF")
         if not self.is_in_progress:
             return False, "Game already concluded"
  
         legal, msg = _is_legal_move(self, move, self.in_turn) # TODO Chess_for_node crashes here Write tests
-
+        
+        # if to[0] == 7 and self.in_turn == 1:
+        #     print("legal: ", legal, ", msg: ", msg, ", move: ",  move, ", extra: ", extra)
         if not legal:
             return False, msg
-        # if debug:
-        #     print("stuff0")
+        # if to[0] == 7:
+            # print("STUFF05")
         backup_board = copy.deepcopy(self.board)  # backup to rollback if move puts player in check
 
         # if debug:
@@ -595,28 +599,29 @@ class Chess:
         #     print("stuff1")
         if move.promote is not None and move.promote in [1, 2, 3, 4, 10]:
             self.board[to] = move.promote * self.in_turn
-        if msg == "Legal castling move":  # move.castle:
+
+        if msg == "Legal castling move":  # Inelegant to check on msg string
             if to == (0, 2):
                 self.board[0, 3] = 2
                 self.board[0, 0] = 0
                 if return_extra:
-                    extra['castle'] =[(0, 0), (0, 3)] 
+                    extra['castle'] = [(0, 0), (0, 3)] 
             elif to == (0, 6):
                 self.board[0, 5] = 2
                 self.board[0, 7] = 0
                 if return_extra:
-                    extra['castle'] =[(0, 7), (0, 5)] 
+                    extra['castle'] = [(0, 7), (0, 5)] 
             elif to == (7, 2):
                 self.board[7, 3] = -2
                 self.board[7, 0] = 0
                 if return_extra:
-                    extra['castle'] =[(7, 0), (7, 3)] 
+                    extra['castle'] = [(7, 0), (7, 3)] 
             elif to == (7, 6):
                 self.board[7, 5] = -2
                 self.board[7, 7] = 0
                 if return_extra:
-                    extra['castle'] =[(7, 7), (7, 5)] 
-        if msg == "Legal En Passant":
+                    extra['castle'] = [(7, 7), (7, 5)]
+        if msg == "Legal En Passant":  # Again. Ugly shit
             self.board[to[0] - self.in_turn, to[1]] = 0
             is_capture_move = True
             if return_extra:
@@ -631,6 +636,7 @@ class Chess:
             self.draw_counter = 0
         else:
             self.draw_counter += 1
+
         self.turn_num += 1
         self.in_turn = self.in_turn * -1
         self.legal_moves = get_legal_moves(self, self.in_turn)
@@ -667,6 +673,6 @@ class Chess:
         elif frm == (7, 7):
             self.legal_castles['(7, 6)'] = False
         if return_extra:
-            return True, msg, extra
+            return True, {"msg": msg, "extra": extra}
         return True, msg
 

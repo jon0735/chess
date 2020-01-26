@@ -9,8 +9,10 @@ const client_path = path.join(__dirname, '..', 'client');
 const python_script_path = path.join(__dirname, '..', 'game', 'chess', 'chess_for_node.py');
 
 function performPlayerMove(gameID, connID, move, validationString){
-    console.log("performPlayerMove. gameID: " + gameID + ", connID: " + connID + ", move: " + move + ", validation: " + validationString);
-    
+    // console.log("performPlayerMove. gameID: " + gameID + ", connID: " + connID);
+    // console.log("move: ");
+    // console.log(move);
+
     if (!active_games.has(gameID)){
         //TODO load from memory
         if (!active_connections.has(connID)){
@@ -25,6 +27,8 @@ function performPlayerMove(gameID, connID, move, validationString){
     }
     var game = active_games.get(gameID);
     var chess = game.chess;
+    // console.log("Chess: " + chess);
+    // console.log(typeof(chess));
     var humanPlayer = game.humanPlayer;
     var rFrom = move.rFrom;
     var cFrom = move.cFrom;
@@ -49,11 +53,12 @@ function performPlayerMove(gameID, connID, move, validationString){
 
     process.stdout.on('data', (data) => {
         console.log("Return data from script (player move)");
-
+        // console.log(data.toString());
         let data_obj = JSON.parse(data);
         var socket = active_connections.get(data_obj.id);
         let status = data_obj.status;
-        var response = {status: status, id: gameID, validation: validationString, msg: data_obj.msg};
+        var response = {status: status, id: gameID, move: data_obj.move, msg: data_obj.msg};
+        // {status: status, id: gameID, move: data_obj.move, msg: data_obj.msg}
         if (status == 200){
             // response = {status: status, validation: validationString, msg: data_obj.msg};
             console.log("Move success");

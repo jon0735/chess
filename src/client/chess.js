@@ -55,10 +55,11 @@ class Chess {
         movedPiece.row = rTo;
         movedPiece.column = cTo;
         this.board[rTo][cTo] = movedPiece;
-        selectedPiece = null;
+        selectedPiece = null; // TODO: Figure out if this is needed still
         moveElementCell(htmlElement, rTo, cTo);
         if (promote != null) {
             var type;
+            // var team = movedPiece.team;
             if (promote == 2){
                 type = 'R';
             } else if (promote == 3) {
@@ -71,19 +72,26 @@ class Chess {
                 console.log("FATAL ERROR: Illegal promote arg: " + promote);
                 return;
             }
-            this.board[rTo][cTo] = new Piece(type, movedPiece.type, rTo, cTo);
-            var offset = document.getElementById("board_div").getBoundingClientRect();
-            var top = offset.top;
-            var left = offset.left;
-            deleteHtmlPiece(this, rTo, cTo);
-            drawHtmlPiece(this, rTo, cTo, top, left);
-            console.log("Handle promotion");
+
+            setTimeout( () => {  // Timeout to allow move animation to finish
+                // console.log("DeleteHtmlPiece call next");
+                deleteHtmlPiece(this, rTo, cTo);
+                this.board[rTo][cTo] = new Piece(type, movedPiece.team, rTo, cTo);
+                var offset = document.getElementById("board_div").getBoundingClientRect();
+                var top = offset.top;
+                var left = offset.left;
+                // console.log("DrawHtmlPiece call next");
+                drawHtmlPiece(this, rTo, cTo, top, left);
+            }, 150); // Animation time for pawn to move 1 square is 100. This should give enough time to look passable
+            // console.log("Handle promotion");
         }
         if (enPassant != null) {
             console.log("Handle En Passant");
         }
         if (castle != null){
             console.log("Handle castling");
+            console.log("Castle info: " + castle);
+
         }
     }
 }
@@ -176,6 +184,7 @@ function deleteHtmlPiece(chess, r, c){
     }
     htmlElement.parentNode.removeChild(htmlElement);
     piece.htmlElement = null;
+    // console.log("Piece deleted");
 }
 
 function drawHtmlPieces(chess){ // should always call deleteHtmlPieces before
@@ -412,6 +421,7 @@ function boardToString(board){
 function getPieceImageName(piece){
     var type = piece.type;
     var team = piece.team;
+    // console.log("getPieceImageName with type = " + type + ", colour = " + team);
     var typeString = "";
     if (type == "P"){
         typeString = "Pawn";
@@ -441,10 +451,10 @@ function getPieceImageName(piece){
 
 function moveElementCell(element, r, c){
     console.log("MoveElementCell called", r, c);
-    var toX = Math.round(c * 80 + boardStartX);
+    var toX = Math.round(c * 80 + boardStartX - 1);
     var toY = Math.floor((7 - r) * 80 + boardStartY);
-    console.log("X: ", c * 80 + boardStartX);
-    console.log("Y: ", (7 - r) * 80 + boardStartY);
+    console.log("X: ", toX);
+    console.log("Y: ", toY);
     moveElement(element, toX, toY);
 }
 
@@ -456,6 +466,8 @@ function moveElement(element, toX, toY){
     var yDist = toY - startY;
     var dist = Math.sqrt(xDist * xDist + yDist * yDist)
     var animationTime = Math.floor(dist/.8);
+    // console.log("Animation time: " + animationTime);
+
     // console.log(dist/800)
     element.style.transitionTimingFunction = "linear";
     element.style.transitionDuration = "" + animationTime + "ms"; // dist/800 -> 0.1s per square (80px) ish
@@ -485,7 +497,6 @@ function drawChessBoard(canvas){
     for (var r = 0; r < 8; r++){
         context.fillText('' + (r + 1), 0.25 * squareLength - 3 * lineWidth , (8 - r) * squareLength + .25 * squareLength - 3 * lineWidth );
     }
-
 
     context.beginPath();
     context.rect( .5 * squareLength, .5 * squareLength, 8 * squareLength + lineWidth, 8 * squareLength + lineWidth);
@@ -580,7 +591,8 @@ $(document).ready(() => {
         if(status == 200){ // Not a secure way of handling a successful move
             console.log("TODO: check stuff when move is success (ID and stuff)");
             console.log("success");
-            finishMove(moveInProgress); // TODO: better to get move from server? (less state to handle here)
+            finishMove(response.move);
+            // finishMove(moveInProgress); // TODO: better to get move from server? (less state to handle client side)
             // Asking for ai move
             var message = {action: "ai move",
                            id: id};

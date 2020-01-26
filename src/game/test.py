@@ -1387,6 +1387,26 @@ class TestChess(unittest.TestCase):
         self.chess.move(Move((1, 1), (6, 6)))
         self.assertEqual(self.chess.draw_counter, 0, "Counter for when game draws, does reset for capture move")
 
+    def test_return_extra_promotion(self):
+        self.chess.board[6, 0] = 1
+        success, msg = self.chess.move(Move((6, 0), (7, 1)), return_extra=True)
+        self.assertFalse(success, "Allowed move without promotion arg")
+        success, msg = self.chess.move(Move((6, 0), (7, 1), promote=10), return_extra=True)
+        self.assertTrue(success, "Legal promote move illegal")
+    
+    def testRandomFailedSitutationFroManualTest(self):
+        chess_string = '{"board": [[2, 3, 4, 10, 100, 4, 3, 2], [1, 0, 1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, -3, 0], [0, 0, 0, 0, 0, 0, 0, 0], [-1, 1, 0, -1, -1, -1, -1, -1], [-2, -3, -4, -10, -100, -4, 0, -2]], "in_turn": 1, "turn_num": 9, "is_in_progress": true, "draw_counter": 1, "winner": null, "last_move": {"frm": [3, 4], "to": [4, 6], "promote": null}, "legal_castles": {"(0, 2)": true, "(0, 6)": true, "(7, 2)": true, "(7, 6)": true}, "legal_moves": [{"frm": [0, 1], "to": [2, 2], "promote": null}, {"frm": [0, 1], "to": [2, 0], "promote": null}, {"frm": [0, 2], "to": [1, 1], "promote": null}, {"frm": [0, 2], "to": [2, 0], "promote": null}, {"frm": [0, 6], "to": [2, 7], "promote": null}, {"frm": [0, 6], "to": [2, 5], "promote": null}, {"frm": [1, 0], "to": [2, 0], "promote": null}, {"frm": [1, 0], "to": [3, 0], "promote": null}, {"frm": [1, 2], "to": [2, 2], "promote": null}, {"frm": [1, 2], "to": [3, 2], "promote": null}, {"frm": [1, 3], "to": [2, 3], "promote": null}, {"frm": [1, 3], "to": [3, 3], "promote": null}, {"frm": [1, 4], "to": [2, 4], "promote": null}, {"frm": [1, 4], "to": [3, 4], "promote": null}, {"frm": [1, 5], "to": [2, 5], "promote": null}, {"frm": [1, 5], "to": [3, 5], "promote": null}, {"frm": [1, 6], "to": [2, 6], "promote": null}, {"frm": [1, 6], "to": [3, 6], "promote": null}, {"frm": [1, 7], "to": [2, 7], "promote": null}, {"frm": [1, 7], "to": [3, 7], "promote": null}, {"frm": [6, 1], "to": [7, 0], "promote": 2}, {"frm": [6, 1], "to": [7, 0], "promote": 3}, {"frm": [6, 1], "to": [7, 0], "promote": 4}, {"frm": [6, 1], "to": [7, 0], "promote": 10}, {"frm": [6, 1], "to": [7, 2], "promote": 2}, {"frm": [6, 1], "to": [7, 2], "promote": 3}, {"frm": [6, 1], "to": [7, 2], "promote": 4}, {"frm": [6, 1], "to": [7, 2], "promote": 10}]}'
+        chess = chess_for_node.unpack_chess(chess_string)
+        # print(chess.in_turn)
+        success, extra = chess.move(Move((6, 1), (7, 0)), return_extra=True)
+        # print(extra)
+        self.assertFalse(success)
+        
+        # msg = extra["msg"]
+        # move_info = extra["extra"]
+        # print(msg)
+        # print(move_info)
+
         # TODO Volantary draw, repeated positions draw (probably not going to do these)
 
 # 1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 10 = queen
@@ -1428,3 +1448,4 @@ if __name__ == '__main__':  # Does not work from PyCharm python console. Use ter
     # print(chess.board[0, 0])
     # print(u'\u2654')
 
+# TODO Client side castle and en passant handling
