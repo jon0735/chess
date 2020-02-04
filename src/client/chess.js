@@ -165,12 +165,12 @@ function deleteHtmlPieces(chess){
             // console.log("r = " + r + ", c = " + c);
             var piece = board[r][c];
             if (piece == null){
-                console.log("Piece is null. Continuing");
+                // console.log("Piece is null. Continuing");
                 continue;
             }
             var htmlElement = piece.htmlElement;
             if (htmlElement == null){
-                console.log("Html element is null. Continuing");
+                // console.log("Html element is null. Continuing");
                 continue;
             }
             htmlElement.parentNode.removeChild(htmlElement);
@@ -557,20 +557,21 @@ $(document).ready(() => {
     });
 
     document.getElementById("newGameButton").addEventListener("click", () => {
-        if (globalChess != null){
-            deleteHtmlPieces(globalChess);
-        }
+        // if (globalChess != null){
+        //     deleteHtmlPieces(globalChess);
+        // }
         var newID = (Math.random().toString(36)+'00000000000000000').slice(2, 10);
         newID = prompt("Choose Instance ID", newID);
+
+        if (newID == null){
+            return;
+        }
+
         var message = {action: "new game",
                        id: newID,
                        humanPlayer: 1}; //TODO: Fix for human playing as black
         console.log(newID);
         webSocket.send(JSON.stringify(message));
-        // var stuff = confirm("stuff");
-        // var chess = new Chess();
-        // drawHtmlPieces(chess);
-        // globalChess = chess;
     });
 
     document.getElementById("promoteRookButton").addEventListener("click", () => {
@@ -596,34 +597,83 @@ $(document).ready(() => {
     webSocket.onmessage = (event) => {
         console.log("socket message received ", JSON.parse(event.data));
         var response = JSON.parse(event.data);
-        var status = response.status
-        if(status == 200){ // Not a secure way of handling a successful move
-            console.log("TODO: check stuff when move is success (ID and stuff)");
-            console.log("success");
-            finishMove(response.move);
-            // finishMove(moveInProgress); // TODO: better to get move from server? (less state to handle client side)
-            // Asking for ai move
-            var message = {action: "ai move",
-                           id: id};
-            webSocket.send(JSON.stringify(message));
-        } else if (status == 201){
-            beginNewGame(response.id, response.humanPlayer);
-        } else if (status == 210) {
-            console.log("Recieved ai move from server");
-            finishMove(response.move);
-            waiting = false;
-            //TODO ai move stuff
-        } else if (status == 220){
-            console.log("Needs promotion argument");
-            var promoteBox = document.getElementById("promoteBox");
-            promoteBox.style.zIndex = 10;
-            promoteBox.style.display = "block";
-            // waiting = false;
-        } else{
-            console.log("Illegal move. Status: " + response.status + ", with message: " + response.msg);
-            // moveElementCell = null;
-            waiting = false;
+        var status = Number(response.status);
+        switch (status) {
+            case 200:
+                console.log("Player move success"); // TODO (?) validate game state
+                finishMove(response.move);
+    
+                // Asking for ai move
+                var message = {action: "ai move",
+                               id: id};
+                webSocket.send(JSON.stringify(message));
+                break;
+            case 201:
+                console.log("New game succesfully started (on server)");
+                if (globalChess != null){
+                    deleteHtmlPieces(globalChess);
+                }
+                beginNewGame(response.id, response.humanPlayer);
+                break;
+            case 210:
+                console.log("Recieved ai move from server");
+                finishMove(response.move);
+                waiting = false;
+                break;
+            case 220:
+                console.log("Needs promotion argument");
+                var promoteBox = document.getElementById("promoteBox");
+                promoteBox.style.zIndex = 10;
+                promoteBox.style.display = "block";
+                break;
+            case 400:
+                // console.log("400");
+                console.log("Illegal move. Status: " + response.status + ", with message: " + response.msg);
+                waiting = false;
+                break;
+            case 500:
+                console.log("Server error due to incompetent (or incomplete) programming. msg: " + response.msg);
+                waiting = false;
+                break;
+            case 501:
+                console.log("Generic server error. msg: " + response.msg);
+                waiting = false;
+                break;
+            default:
+                console.log("Unknown response code. Status: " + response.status + ", with message: " + response.msg);
+                // moveElementCell = null;
+                waiting = false;
         }
+
+        // if(status == 200){ // 200 - succesful player move move
+        //     console.log("TODO: check stuff when move is success (ID and stuff)");
+        //     console.log("success");
+        //     finishMove(response.move);
+
+        //     // Asking for ai move
+        //     var message = {action: "ai move",
+        //                    id: id};
+        //     webSocket.send(JSON.stringify(message));
+        // } else if (status == 201){
+        //     if (globalChess != null){
+        //         deleteHtmlPieces(globalChess);
+        //     }
+        //     beginNewGame(response.id, response.humanPlayer);
+        // } else if (status == 210) { // 210 - succesful ai move (TODO: consider merging with 200)
+        //     console.log("Recieved ai move from server");
+        //     finishMove(response.move);
+        //     waiting = false;
+        // } else if (status == 220){ // 220 - needs promote argument
+        //     console.log("Needs promotion argument");
+        //     var promoteBox = document.getElementById("promoteBox");
+        //     promoteBox.style.zIndex = 10;
+        //     promoteBox.style.display = "block";
+        //     // waiting = false;
+        // } else{
+        //     console.log("Illegal move. Status: " + response.status + ", with message: " + response.msg);
+        //     // moveElementCell = null;
+        //     waiting = false;
+        // }
     }
 
     var canvas = document.getElementById("chess_canvas");
@@ -641,3 +691,4 @@ $(document).ready(() => {
 // TODO: Refactor css 
 // TODO: New game button deletes pieces before accept. If cancel option chosen, this may crash server
 // TODO: UI stuff for Id, Turn, ect. (Remember castling moves call move function twice)
+// TODO: reconsider 'waiting' variable

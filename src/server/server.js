@@ -192,39 +192,46 @@ server.listen(8210, () => {
 
 socket.on('connection', ws => {
     
-    var connID = (Math.random().toString(36)+'00000000000000000').slice(2, 10);
+    var connID = (Math.random().toString(36)+'00000000000000000').slice(2, 10); // random id
     while(active_connections.has()){
-        connID = (Math.random().toString(36)+'00000000000000000').slice(2, 10);
+        connID = (Math.random().toString(36)+'00000000000000000').slice(2, 10); // random id again if colision
     }
     ws.connID = connID;
     active_connections.set(connID, ws);
     console.log("Socket connection established with ID: " + connID);
     ws.on('message', message => {
-        console.log("Socket message received" + message);
-        var jsonMessage = JSON.parse(message);
-        var action = jsonMessage.action;
-
-        if (action == 'player move'){
-            console.log("TODO: Validate move");
-            if (jsonMessage.move){
-                performPlayerMove(jsonMessage.id, ws.connID, jsonMessage.move, jsonMessage.validation);
+        try {
+            console.log("Socket message received: " + message);
+            var jsonMessage = JSON.parse(message);
+            var action = jsonMessage.action;
+    
+            if (action == 'player move'){
+                console.log("TODO: Validate move");
+                if (jsonMessage.move){
+                    performPlayerMove(jsonMessage.id, ws.connID, jsonMessage.move, jsonMessage.validation);
+                }
+                // response = {status: "done", validation: jsonMessage.validation};
+            } else if (action == 'new game'){
+                createNewGame(jsonMessage.id, ws.connID, jsonMessage.humanPlayer);
+            } else if (action == "ai move") {
+                requestAiMove(jsonMessage.id, ws.connID);
             }
-            // response = {status: "done", validation: jsonMessage.validation};
-        } else if (action == 'new game'){
-            createNewGame(jsonMessage.id, ws.connID, jsonMessage.humanPlayer);
-        } else if (action == "ai move") {
-            requestAiMove(jsonMessage.id, ws.connID);
-        }
-        else {
-            response = {status: "error"};
+            else {
+                var response = {status: 501, msg: "action '" + action + "' not recognised"};
+                ws.send(JSON.stringify(response));
+            }
+        } catch (error){
+            console.log("Error from incomming message. Error: " + error);
+            var response = {status: 501, msg: "Server error encountered. Most likely due to nonsense message sent to server"};
+            ws.send(JSON.stringify(response));
         }
     });
   });
 
 // TODO: Let player play as black
-// TODO: Considder race conditions
-// TODO: Obvious security roblem in just using game ID for everything (e.g. can just try to load a ton of different IDs)
-// TODO: Surround parsing in try-catch to avoid server crash when illigeal information fed through sockets.
+// TODO: Consider race conditions
+// TODO: Obvious security roblem in just using game ID for everything (e.g. can just try to load a ton of different IDs) (probably wont do anything about this)
+// TODO: Surround parsing in try-catch to avoid server crash when illigeal information fed through sockets. (done)
 // TODO: Safeguard against injection attacks in player move
 
 // Codes:
@@ -234,4 +241,5 @@ socket.on('connection', ws => {
 // 220 - promotion argument needed
 // 400 - Illegal move
 // 500 - Parsing error in the python script
+// 501 - Generic server error
 // 529 - No such game ID on the server side
