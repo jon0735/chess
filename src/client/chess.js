@@ -9,7 +9,7 @@ var boardStartX;
 var boardStartY;
 var waiting = false;
 var webSocket;
-var moveInProgress;
+var moveInProgress; // TODO: Deal with this. Is used inconsistently
 
 class Chess {
     constructor(humanPlayer, board, inTurn){
@@ -89,9 +89,6 @@ class Chess {
             console.log("Handle En Passant");
         }
         if (castle != null){
-            // console.log("Castle info: " + castle);
-            // console.log("Type: " + typeof(castle));
-            // console.log(move);
             var rookMove = {
                 rFrom: castle[0][0],
                 cFrom: castle[0][1],
@@ -159,18 +156,14 @@ function deleteHtmlPieces(chess){
         return;
     }
     var board = chess.board;
-    // console.log("Before loop");
     for (var r = 0; r < 8; r++){
         for (var c = 0; c < 8; c++){
-            // console.log("r = " + r + ", c = " + c);
             var piece = board[r][c];
             if (piece == null){
-                // console.log("Piece is null. Continuing");
                 continue;
             }
             var htmlElement = piece.htmlElement;
             if (htmlElement == null){
-                // console.log("Html element is null. Continuing");
                 continue;
             }
             htmlElement.parentNode.removeChild(htmlElement);
@@ -197,44 +190,12 @@ function deleteHtmlPiece(chess, r, c){
 }
 
 function drawHtmlPieces(chess){ // should always call deleteHtmlPieces before
-    // console.log("draw called");
-    // var board = chess.board;
     var offset = document.getElementById("board_div").getBoundingClientRect();
     var top = offset.top;
     var left = offset.left;
-    // console.log("before loop");
     for (var r = 0; r < 8; r++){
         for (var c = 0; c < 8; c++){
-            drawHtmlPiece(chess, r, c, top, left)
-            // console.log("loop: " + r + ", " + c);
-            // var piece = board[r][c];
-            // // console.log("stuff " + piece);
-            // if (piece == null){
-            //     continue;
-            // }
-            // var htmlElement = piece.htmlElement;
-            // if (htmlElement == null){
-            //     // console.log("Start html null");
-            //     // console.log(getPieceImageName(piece));
-            //     var pieceImg = document.createElement('img');
-            //     pieceImg.src = "resources/" + getPieceImageName(piece);
-            //     pieceImg.style.transitionTimingFunction = "linear";
-            //     pieceImg.style.zIndex = 1;
-            //     pieceImg.style.position = "absolute";
-            //     pieceImg.style.left = Math.round(left + 0.5 * lineWidth + squareLength * (c + .5));
-            //     pieceImg.style.top = Math.round(top + 0.5 * lineWidth + squareLength * (7.5 - r));
-            //     document.getElementById("chess_div_right").appendChild(pieceImg);
-            //     piece.htmlElement = pieceImg;
-            //     // console.log("End html null");
-            // } else{
-            //     console.log("Existing Piece found while drawing. Someone fucked up");
-            // }
-            // if (piece.team == chess.humanPlayer){
-            //     piece.htmlElement.addEventListener('click', ownPieceEventHandler);
-            // } else {
-            //     piece.htmlElement.addEventListener('click', enemyPieceEventHandler);
-            // }
-            // piece.htmlElement.piece = piece;
+            drawHtmlPiece(chess, r, c, top, left);
         }
     }
 }
@@ -372,7 +333,7 @@ function attemptMove(move){
     // console.log(boardString);
     var validation = {boardString: boardString, 
                       inTurn: globalChess.inTurn,
-                      humanPlayer: globalChess.humanPlayer};
+                      humanPlayer: globalChess.humanPlayer}; // TODO: Presently not really using this
     var message = {action: 'player move',  // codes might be more efficient (but will lower readability)
                    move: move,
                    id: id,
@@ -393,19 +354,19 @@ function finishMove(move){
     console.log("TODO: finish move stuff");
 }
 
-function finishMove2(move){
-    console.log(move);
-    // var moveDict = {rFrom: move.frm[0],
-    //     cFrom: move.frm[1],
-    //     rTo: move.to[0],
-    //     cTo: move.to[1],
-    //     promote: null,
-    //     enPassant: null,
-    //     castle: null};
-    globalChess.move(move);
-    waiting = false;
-    console.log("TODO: Finish ai move stuff");
-}
+// function finishMove2(move){
+//     console.log(move);
+//     // var moveDict = {rFrom: move.frm[0],
+//     //     cFrom: move.frm[1],
+//     //     rTo: move.to[0],
+//     //     cTo: move.to[1],
+//     //     promote: null,
+//     //     enPassant: null,
+//     //     castle: null};
+//     globalChess.move(move);
+//     waiting = false;
+//     console.log("TODO: Finish ai move stuff");
+// }
 
 function boardToString(board){
     var s = '';
@@ -557,13 +518,11 @@ $(document).ready(() => {
     });
 
     document.getElementById("newGameButton").addEventListener("click", () => {
-        // if (globalChess != null){
-        //     deleteHtmlPieces(globalChess);
-        // }
+
         var newID = (Math.random().toString(36)+'00000000000000000').slice(2, 10);
         newID = prompt("Choose Instance ID", newID);
 
-        if (newID == null){
+        if (newID == null){ // If cancelled prompt
             return;
         }
 
@@ -627,7 +586,6 @@ $(document).ready(() => {
                 promoteBox.style.display = "block";
                 break;
             case 400:
-                // console.log("400");
                 console.log("Illegal move. Status: " + response.status + ", with message: " + response.msg);
                 waiting = false;
                 break;
@@ -641,39 +599,8 @@ $(document).ready(() => {
                 break;
             default:
                 console.log("Unknown response code. Status: " + response.status + ", with message: " + response.msg);
-                // moveElementCell = null;
                 waiting = false;
         }
-
-        // if(status == 200){ // 200 - succesful player move move
-        //     console.log("TODO: check stuff when move is success (ID and stuff)");
-        //     console.log("success");
-        //     finishMove(response.move);
-
-        //     // Asking for ai move
-        //     var message = {action: "ai move",
-        //                    id: id};
-        //     webSocket.send(JSON.stringify(message));
-        // } else if (status == 201){
-        //     if (globalChess != null){
-        //         deleteHtmlPieces(globalChess);
-        //     }
-        //     beginNewGame(response.id, response.humanPlayer);
-        // } else if (status == 210) { // 210 - succesful ai move (TODO: consider merging with 200)
-        //     console.log("Recieved ai move from server");
-        //     finishMove(response.move);
-        //     waiting = false;
-        // } else if (status == 220){ // 220 - needs promote argument
-        //     console.log("Needs promotion argument");
-        //     var promoteBox = document.getElementById("promoteBox");
-        //     promoteBox.style.zIndex = 10;
-        //     promoteBox.style.display = "block";
-        //     // waiting = false;
-        // } else{
-        //     console.log("Illegal move. Status: " + response.status + ", with message: " + response.msg);
-        //     // moveElementCell = null;
-        //     waiting = false;
-        // }
     }
 
     var canvas = document.getElementById("chess_canvas");
@@ -692,3 +619,4 @@ $(document).ready(() => {
 // TODO: New game button deletes pieces before accept. If cancel option chosen, this may crash server
 // TODO: UI stuff for Id, Turn, ect. (Remember castling moves call move function twice)
 // TODO: reconsider 'waiting' variable
+// TODO: Handle UI breaking down when scrolling/resizing
