@@ -116,8 +116,11 @@ function requestAiMove(gameID, connID){
             var humanPlayer = game.humanPlayer;
             active_games.set(gameID, {chess: chess, humanPlayer: humanPlayer});
             console.log("Server side chess updated");
+        } else if (status == 500) {
+            console.log("AI move failed (Error). Msg: " + response.msg);
+            response.msg = "Server error encountered. I.e. server has a bug"
         } else {
-            console.log("AI move fail");
+            console.log("AI move fail with msg: " + response.msg);
         }
 
         var responseString = JSON.stringify(response);

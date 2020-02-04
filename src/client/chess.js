@@ -39,9 +39,6 @@ class Chess {
             console.log("Attempted move on non existant piece")
             return;
         }
-        // if (!(special == undefined || special == null)){
-        //     console.log("TODO Handle special move events (castle and that other one)");
-        // }
         var movedPiece = this.board[rFrom][cFrom];
         var htmlElement = movedPiece.htmlElement;
         htmlElement.style.outline = 'none';
@@ -74,24 +71,36 @@ class Chess {
             }
 
             setTimeout( () => {  // Timeout to allow move animation to finish
-                // console.log("DeleteHtmlPiece call next");
                 deleteHtmlPiece(this, rTo, cTo);
                 this.board[rTo][cTo] = new Piece(type, movedPiece.team, rTo, cTo);
                 var offset = document.getElementById("board_div").getBoundingClientRect();
                 var top = offset.top;
                 var left = offset.left;
-                // console.log("DrawHtmlPiece call next");
                 drawHtmlPiece(this, rTo, cTo, top, left);
             }, 150); // Animation time for pawn to move 1 square is 100. This should give enough time to look passable
-            // console.log("Handle promotion");
         }
         if (enPassant != null) {
+            setTimeout( () => {
+                var row = enPassant[0];
+                var column = enPassant[1];
+                deleteHtmlPiece(this, row, column);
+                this.board[row][column] = null;
+            }, 200);
             console.log("Handle En Passant");
         }
         if (castle != null){
-            console.log("Handle castling");
-            console.log("Castle info: " + castle);
-
+            // console.log("Castle info: " + castle);
+            // console.log("Type: " + typeof(castle));
+            // console.log(move);
+            var rookMove = {
+                rFrom: castle[0][0],
+                cFrom: castle[0][1],
+                rTo: castle[1][0],
+                cTo: castle[1][1],
+                promote: null,
+                enPassant: null,
+                castle: null};
+            this.move(rookMove); // May need changing based on future chess state changes (turn number e.g.)
         }
     }
 }
@@ -630,3 +639,5 @@ $(document).ready(() => {
 
 // TODO: let player play as black
 // TODO: Refactor css 
+// TODO: New game button deletes pieces before accept. If cancel option chosen, this may crash server
+// TODO: UI stuff for Id, Turn, ect. (Remember castling moves call move function twice)
