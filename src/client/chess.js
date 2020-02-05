@@ -321,13 +321,6 @@ function rowColumnToChessNotation(row, column){
 
 function attemptMove(move){
     waiting = true;
-    // var move = {rFrom: rFrom,
-    //             cFrom: cFrom,
-    //             rTo: rTo,
-    //             cTo: cTo,
-    //             promote: null,
-    //             enPassant: null,
-    //             castle: null}; // TODO: Fix promote
     moveInProgress = move;
     var boardString = boardToString(globalChess.board);
     // console.log(boardString);
@@ -353,20 +346,6 @@ function finishMove(move){
     // waiting = false;
     console.log("TODO: finish move stuff");
 }
-
-// function finishMove2(move){
-//     console.log(move);
-//     // var moveDict = {rFrom: move.frm[0],
-//     //     cFrom: move.frm[1],
-//     //     rTo: move.to[0],
-//     //     cTo: move.to[1],
-//     //     promote: null,
-//     //     enPassant: null,
-//     //     castle: null};
-//     globalChess.move(move);
-//     waiting = false;
-//     console.log("TODO: Finish ai move stuff");
-// }
 
 function boardToString(board){
     var s = '';

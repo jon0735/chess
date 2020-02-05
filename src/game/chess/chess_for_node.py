@@ -76,7 +76,7 @@ def makeMove(id, chess_json, move=None):
         move_info['cTo'] = move.to[1]
         chess_result = pack_chess(chess)
         if chess is None:
-            return {"status" : 500, "chess" : "None", "id" : id, "msg" : "Parsing input caused exception (packing). either garbage was sent to the server, or server incompetently programmed"}
+            return {"status" : 500, "chess" : "None", "id" : id, "msg" : "Parsing input caused exception (packing). Either garbage was sent to the server, or server incompetently programmed"}
         return {"status" : status, "chess" : chess_result, "id" : id, "move": move_info, "msg" : msg}
     except Exception as e:
         trace = traceback.format_exc()  # For debugging
@@ -115,7 +115,7 @@ def makeAiMove(id, chess_json):
         return {"status" : 500, "chess" : "None", "id" : id, "move": None, "msg" : "Parsing input caused exception. Server incompetently programmed. error: " + str(e) + ", Trace: " + str(trace) + ", move = " + string}
 
 
-def getNewGame(id):  # Considder just returning a string instead of all these operations
+def getNewGame(id):  # Consider just returning a string instead of all these operations
     try:
         chess_dict = pack_chess(Chess())
         result = {"status" : 201, "chess" : chess_dict, 'id' : id}

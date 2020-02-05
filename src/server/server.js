@@ -9,9 +9,6 @@ const client_path = path.join(__dirname, '..', 'client');
 const python_script_path = path.join(__dirname, '..', 'game', 'chess', 'chess_for_node.py');
 
 function performPlayerMove(gameID, connID, move, validationString){
-    // console.log("performPlayerMove. gameID: " + gameID + ", connID: " + connID);
-    // console.log("move: ");
-    // console.log(move);
 
     if (!active_games.has(gameID)){
         //TODO load from memory
@@ -21,19 +18,17 @@ function performPlayerMove(gameID, connID, move, validationString){
         }
         var socket = active_connections.get(connID);
         var response = {status: 404, validation: validationString, msg: "No game of ID: " + gameID + ", on serverside."}
-        socket.send(response);
+        socket.send(JSON.stringify(response));
         console.log("PerfromPlayerMove without gameID existing");
         return;
     }
     var game = active_games.get(gameID);
-    var chess = game.chess;
-    // console.log("Chess: " + chess);
-    // console.log(typeof(chess));
-    var humanPlayer = game.humanPlayer;
-    var rFrom = move.rFrom;
-    var cFrom = move.cFrom;
-    var rTo = move.rTo;
-    var cTo = move.cTo;
+    // var chess = game.chess;
+    // var humanPlayer = game.humanPlayer;
+    // var rFrom = move.rFrom;
+    // var cFrom = move.cFrom;
+    // var rTo = move.rTo;
+    // var cTo = move.cTo;
     var promote = move.promote;
     if (promote == null){
         promote = 0;
@@ -43,41 +38,15 @@ function performPlayerMove(gameID, connID, move, validationString){
     var process = spawn('python', [python_script_path,
         connID, //Not presently being used anywhere
         'move',
-        rFrom,
-        cFrom,
-        rTo,
-        cTo,
-        chess,
-        humanPlayer,
+        move.rFrom,
+        move.cFrom,
+        move.rTo,
+        move.cTo,
+        game.chess,
+        game.humanPlayer,
         promote]);
 
-    process.stdout.on('data', (data) => {
-        console.log("Return data from script (player move)");
-        // console.log(data.toString());
-        let data_obj = JSON.parse(data);
-        var socket = active_connections.get(data_obj.id);
-        let status = data_obj.status;
-        var response = {status: status, id: gameID, move: data_obj.move, msg: data_obj.msg};
-        // {status: status, id: gameID, move: data_obj.move, msg: data_obj.msg}
-        if (status == 200){
-            // response = {status: status, validation: validationString, msg: data_obj.msg};
-            console.log("Move success");
-            // TODO UPDATE CHESS LIST
-            var chess = data_obj.chess;
-            var humanPlayer = game.humanPlayer;
-            active_games.set(gameID, {chess: chess, humanPlayer: humanPlayer});
-            console.log("Server side chess updated");
-        } else if (status == 220) {
-            console.log("Promotion argument needed");
-        } else {
-            console.log("Move Failed");
-        }
-
-        var responseString = JSON.stringify(response);
-        socket.send(responseString);
-        console.log("response sent: " + responseString);
-    });
-    //TODO
+    process.stdout.on('data', (data) => { handleScriptData(data, gameID, connID, game.humanPlayer); });
 }
 
 function requestAiMove(gameID, connID){
@@ -95,74 +64,62 @@ function requestAiMove(gameID, connID){
         return;
     }
     var game = active_games.get(gameID);
-    var chess = game.chess; 
+    var chess = game.chess;
+    // var humanPlayer = game.humanPlayer;
 
+    // TODO include 'HumanPlayer' argument to prevent player from just getting ai arg (Or is that ok?)
     var process = spawn('python', [python_script_path,
         connID, //Not presently being used anywhere
         'ai',
         chess]);
     
-    process.stdout.on('data', (data) => {
-        let data_obj = JSON.parse(data);
-        // let data_obj = JSON.parse(data.toString());
-        var socket = active_connections.get(data_obj.id);
-        let status = data_obj.status;
-        var response = {status: status, id: gameID, move: data_obj.move, msg: data_obj.msg}; // Considder including the validation string stuff
-        if (status == 210){
-            // response = {status: status, validation: validationString, msg: data_obj.msg};
-            console.log("AI move success");
-            // TODO UPDATE CHESS LIST
-            var chess = data_obj.chess;
-            var humanPlayer = game.humanPlayer;
-            active_games.set(gameID, {chess: chess, humanPlayer: humanPlayer});
-            console.log("Server side chess updated");
-        } else if (status == 500) {
-            console.log("AI move failed (Error). Msg: " + response.msg);
-            response.msg = "Server error encountered. I.e. server has a bug"
-        } else {
-            console.log("AI move fail with msg: " + response.msg);
-        }
-
-        var responseString = JSON.stringify(response);
-        socket.send(responseString);
-        console.log("response sent: " + responseString);
-    });  
+    process.stdout.on('data', (data) => { handleScriptData(data, gameID, connID, game.humanPlayer); });  
 }
 
 function createNewGame(gameID, connID, humanPlayer){
-    console.log("CreateNewGame called with gameID: " + gameID + ", connID: " + connID + ", HumanPlayer: " + humanPlayer);
+    console.log("CreateNewGame called with gameID: " + gameID + ", socket: " + connID + ", HumanPlayer: " + humanPlayer);
     if (active_games.has(gameID)){
-        if (!active_connections.has(connID)){
-            console.log("createNewGame without connID and already existing game ID");
-            return;
-        }
-        var socket = active_connections.get(connID);
         var response = {status: 529, validation: validationString, msg: "No game of ID: " + gameID + ", on serverside."} // Random status code
-        socket.send(response);
+        socketID.send(response);
     }
-    // console.log(python_script_path);
     var process = spawn('python', [python_script_path,
-        connID, // Not presently being used
+        gameID, // Not presently being used
         'create']);
 
+    
+    process.stdout.on('data', (data) => { handleScriptData(data, gameID, connID, humanPlayer); });
+}
 
-    process.stdout.on('data', (data) => {
-        console.log("Returned from make new game");
-        // console.log(data.toString());
-        let data_obj = JSON.parse(data);
-        let socket = active_connections.get(data_obj.id);
-        let status = data_obj.status;
-        let response = {status: status, id: gameID, humanPlayer: humanPlayer, msg: data_obj.msg};
-        // TODO: Check data and call appropriate functions
-        let chess= data_obj.chess;
-        active_games.set(gameID, {chess: chess, humanPlayer: humanPlayer}); // TODO: Potential race condition here
-        let responseString = JSON.stringify(response); 
+function handleScriptData(data, gameID, connID, humanPlayer){
+    let dataObj = JSON.parse(data);
+    let status = dataObj.status;
+    var response = {status: status, id: gameID, msg: dataObj.msg}; // Consider including the validation string stuff
+    if (status == 200 || status == 210){ // TODO switch statement?
+        console.log("Move success");
+        response.move = dataObj.move;
+        var chess = dataObj.chess;
+        active_games.set(gameID, {chess: chess, humanPlayer: humanPlayer});
+        console.log("Server side chess updated");
+    } else if (status == 201) {
+        response.humanPlayer = humanPlayer;
+        let chess = dataObj.chess;
+        active_games.set(gameID, {chess: chess, humanPlayer: humanPlayer});
+        console.log("New game created");
+    } else if (status == 500) {
+        console.log("Move failed (Error). Msg: " + response.msg);
+        response.msg = "Server error encountered. I.e. server has a bug";
+    } else {
+        console.log("Script return status: " + response.status + ", msg: " + response.msg);
+    }
+
+    var responseString = JSON.stringify(response);
+    var socket = active_connections.get(connID);
+    if (socket != null){
         socket.send(responseString);
-        console.log("New game response sent: " + responseString);
-    });
-
-
-    //TODO
+        console.log("response sent: " + responseString);
+    } else {
+        console.log("No active socket to respond to");
+    }
 }
 
 var app = express();
@@ -181,7 +138,7 @@ app.get('/chess', function (req, res){
 
 const server = http.createServer(app);
 
-var socket = new WebSocket.Server( {server} );
+var webSocketServer = new WebSocket.Server( {server} );
 
 server.listen(8210, () => {
     var host = server.address().address;
@@ -190,10 +147,10 @@ server.listen(8210, () => {
     console.log('Listening: ', host, port);
 });
 
-socket.on('connection', ws => {
-    
+webSocketServer.on('connection', ws => {
+    // TODO change from id stuff, to just send socket along as argument
     var connID = (Math.random().toString(36)+'00000000000000000').slice(2, 10); // random id
-    while(active_connections.has()){
+    while(active_connections.has(connID)){
         connID = (Math.random().toString(36)+'00000000000000000').slice(2, 10); // random id again if colision
     }
     ws.connID = connID;
@@ -221,7 +178,7 @@ socket.on('connection', ws => {
                 ws.send(JSON.stringify(response));
             }
         } catch (error){
-            console.log("Error from incomming message. Error: " + error);
+            console.log("Error from incomming message. Error: " + error + ": " + error.stack);
             var response = {status: 501, msg: "Server error encountered. Most likely due to nonsense message sent to server"};
             ws.send(JSON.stringify(response));
         }
@@ -229,7 +186,7 @@ socket.on('connection', ws => {
   });
 
 // TODO: Let player play as black
-// TODO: Consider race conditions
+// TODO: Consider race conditions (is this even a thing in javascript async?)
 // TODO: Obvious security roblem in just using game ID for everything (e.g. can just try to load a ton of different IDs) (probably wont do anything about this)
 // TODO: Surround parsing in try-catch to avoid server crash when illigeal information fed through sockets. (done)
 // TODO: Safeguard against injection attacks in player move
@@ -237,6 +194,7 @@ socket.on('connection', ws => {
 // Codes:
 // 200 - Succesful player rmove
 // 201 - Game created
+// 202 - Move made (ai or player) which led to game ending
 // 210 - Succesful ai move
 // 220 - promotion argument needed
 // 400 - Illegal move
