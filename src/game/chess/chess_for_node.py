@@ -77,7 +77,13 @@ def makeMove(id, chess_json, move=None):
         chess_result = pack_chess(chess)
         if chess is None:
             return {"status" : 500, "chess" : "None", "id" : id, "msg" : "Parsing input caused exception (packing). Either garbage was sent to the server, or server incompetently programmed"}
-        return {"status" : status, "chess" : chess_result, "id" : id, "move": move_info, "msg" : msg}
+        
+        result = {"status" : status, "chess" : chess_result, "id" : id, "move": move_info, "msg" : msg}
+        if not chess.is_in_progress:
+            result["status"] = 203
+            result["winner"] = chess.winner
+        return result
+        # return {"status" : status, "chess" : chess_result, "id" : id, "move": move_info, "msg" : msg}
     except Exception as e:
         trace = traceback.format_exc()  # For debugging
         # print(e)
@@ -99,6 +105,8 @@ def makeAiMove(id, chess_json):
         status = 210 if success else 400
         if status == 400:
             msg += ". This can only happen due to incompetent programming"
+        
+
         # string += "\nSuccess determined"
         chess_result = pack_chess(chess)
         move_info['rFrom'] = move.frm[0]
@@ -106,8 +114,11 @@ def makeAiMove(id, chess_json):
         move_info['rTo'] = move.to[0]
         move_info['cTo'] = move.to[1]
         # string += "\nJust before return"
-
-        return {"status" : status, "chess" : chess_result, "id" : id, "move": move_info, "msg" : msg}
+        result = {"status" : status, "chess" : chess_result, "id" : id, "move": move_info, "msg" : msg}
+        if not chess.is_in_progress:
+            result["status"] = 203
+            result["winner"] = chess.winner
+        return result
     except Exception as e:
         # traceback.print_exc()
         # print(str(e))

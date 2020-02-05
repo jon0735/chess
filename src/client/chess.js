@@ -221,7 +221,7 @@ function drawHtmlPiece(chess, r, c, top, left){
         document.getElementById("chess_div_right").appendChild(pieceImg);
         piece.htmlElement = pieceImg;
         // console.log("End html null");
-    } else{
+    } else {
         console.log("Existing Piece found while drawing. Someone fucked up");
     }
     if (piece.team == chess.humanPlayer){
@@ -474,6 +474,57 @@ function beginNewGame(newId, humanPlayer){
     var chess = new Chess(humanPlayer);
     drawHtmlPieces(chess);
     globalChess = chess;
+    waiting = false;
+}
+
+function loadGame(gameID, pyBoard, turn, humanPlayer, inTurn){
+    // TODO turn num stuff
+    id = gameID;
+    var board = pythonToJsBoard(pyBoard);
+    deleteHtmlPieces(globalChess);
+    globalChess = new Chess(humanPlayer, board, inTurn);
+    drawHtmlPieces(globalChess);
+    if (inTurn != humanPlayer) {
+        waiting = true;
+    }
+}
+
+function pythonToJsBoard(pythonBoard){
+    var jsBoard = [...Array(8)].map(e => Array(8));
+    for (var r = 0; r < 8; r++) {
+        for (var c = 0; c < 8; c++) {
+            var pyPiece = pythonBoard[r][c];
+            if (pyPiece == 0){ continue; }
+            var type;
+            switch (Math.abs(pythonBoard[r][c])){
+                case 1:
+                    type = "P";
+                    break;
+                case 2:
+                    type = "R"
+                    break;
+                case 3:
+                    type = "N";
+                    break;
+                case 4:
+                    type = "B";
+                    break;
+                case 10:
+                    type = "Q";
+                    break;
+                case 100:
+                    type = "K";
+                    break;
+                default:
+                    console.log("Unknown type. This shouldn't happen");
+            }
+            var team;
+            if (pyPiece > 0) { team = 1; }
+            else { team = -1; }
+            jsBoard[r][c] = new Piece(type, team, r, c);
+        }
+    }
+    return jsBoard;
 }
 
 $(document).ready(() => {
@@ -488,11 +539,15 @@ $(document).ready(() => {
 
     document.getElementById("loadGameButton").addEventListener("click", () => {
         console.log("TODO: Fix load button");
-        var promoteBox = document.getElementById("promoteBox");
-        promoteBox.style.display = "block";
-        setTimeout( () => {
-            promoteBox.style.display = "none";
-        }, 5000);
+        var gameID = prompt("Game ID");
+        var message = {action: "load game",
+                       id: gameID};
+        webSocket.send(JSON.stringify(message));
+        // var promoteBox = document.getElementById("promoteBox");
+        // promoteBox.style.display = "block";
+        // setTimeout( () => {
+        //     promoteBox.style.display = "none";
+        // }, 5000);
         // deleteHtmlPieces(globalChess);
     });
 
@@ -553,6 +608,26 @@ $(document).ready(() => {
                 }
                 beginNewGame(response.id, response.humanPlayer);
                 break;
+            case 202:
+                console.log("TODO GAME LOAD");
+                // gameID, pyBoard, turn, humanPlayer, in_turn
+                loadGame(response.id, response.board, response.turn, response.humanPlayer, response.inTurn);
+                if (response.inTurn != response.humanPlayer) {
+                    var message = {action: "ai move",
+                                   id: id};
+                    webSocket.send(JSON.stringify(message));
+                }
+                break;
+            case 203:
+                console.log("Player move success. Game ended");
+                var msg = "Game over. Winner: ";
+                if (response.winner == 1) {msg += "White"}
+                else if (response.winner == -1) {msg = "Black"}
+                else {msg = "Game over. Draw"}
+                finishMove(response.move);
+                alert(msg);
+                waiting = true;
+                break;
             case 210:
                 console.log("Recieved ai move from server");
                 finishMove(response.move);
@@ -575,6 +650,14 @@ $(document).ready(() => {
             case 501:
                 console.log("Generic server error. msg: " + response.msg);
                 waiting = false;
+                break;
+            case 528:
+                console.log("Game ID already in use");
+                alert("Chosen Game ID is already in use");
+                break;
+            case 529:
+                console.log("No such game to load");
+                alert("No game with that ID to load");
                 break;
             default:
                 console.log("Unknown response code. Status: " + response.status + ", with message: " + response.msg);
