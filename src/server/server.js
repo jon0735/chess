@@ -22,19 +22,13 @@ function performPlayerMove(gameID, connID, move, validationString){
         console.log("PerfromPlayerMove without gameID existing");
         return;
     }
+
     var game = active_games.get(gameID);
-    // var chess = game.chess;
-    // var humanPlayer = game.humanPlayer;
-    // var rFrom = move.rFrom;
-    // var cFrom = move.cFrom;
-    // var rTo = move.rTo;
-    // var cTo = move.cTo;
     var promote = move.promote;
     if (promote == null){
         promote = 0;
     }
 
-    console.log("Just before starting python script");
     var process = spawn('python', [python_script_path,
         connID, //Not presently being used anywhere
         'move',
@@ -65,7 +59,6 @@ function requestAiMove(gameID, connID){
     }
     var game = active_games.get(gameID);
     var chess = game.chess;
-    // var humanPlayer = game.humanPlayer;
 
     // TODO include 'HumanPlayer' argument to prevent player from just getting ai arg (Or is that ok?)
     var process = spawn('python', [python_script_path,
@@ -86,7 +79,6 @@ function createNewGame(gameID, connID, humanPlayer){
         gameID, // Not presently being used
         'create']);
 
-    
     process.stdout.on('data', (data) => { handleScriptData(data, gameID, connID, humanPlayer); });
 }
 
