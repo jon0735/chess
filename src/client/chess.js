@@ -1,5 +1,5 @@
-// import { json } from "body-parser";
 
+// global variables/constants
 const squareLength = 80; // MUST be 80 or integer stuff and images will break down. TODO: fix
 const lineWidth = 2;
 var globalChess = null;
@@ -11,6 +11,7 @@ var waiting = false;
 var webSocket;
 var moveInProgress; // TODO: Deal with this. Is used inconsistently
 
+// Chess class for client side. Contains no move rules and the like. That is handled serverside
 class Chess {
     constructor(humanPlayer, board, inTurn, turnNum){
         if (board === undefined){ board = getStartBoard(); }
@@ -23,6 +24,8 @@ class Chess {
         this.turnNum = turnNum;
     }
 
+    // Performs chess move. Updating globalchess, and moving/changing html elements
+    // No checks for if move is legal. That is handled server side.
     move(move){
         var rFrom = move.rFrom;
         var cFrom = move.cFrom;
@@ -38,7 +41,6 @@ class Chess {
         var movedPiece = this.board[rFrom][cFrom];
         var htmlElement = movedPiece.htmlElement;
         htmlElement.style.outline = 'none';
-        // moveElementCell(this.board[rFrom][cFrom].htmlElement, rTo, cTo);
         var toPiece = this.board[rTo][cTo];
         if (toPiece != null && toPiece.htmlElement != null){
              toPiece.htmlElement.parentNode.removeChild(toPiece.htmlElement);
@@ -66,7 +68,7 @@ class Chess {
                 return;
             }
 
-            setTimeout( () => {  // Timeout to allow move animation to finish
+            setTimeout( () => {  // Timeout to allow move animation to finish before changing piece due to promotion
                 deleteHtmlPiece(this, rTo, cTo);
                 this.board[rTo][cTo] = new Piece(type, movedPiece.team, rTo, cTo);
                 var offset = document.getElementById("board_div").getBoundingClientRect();
@@ -94,7 +96,7 @@ class Chess {
                 enPassant: null,
                 castle: null};
             this.move(rookMove); // May need changing based on future chess state changes (turn number e.g.)
-        } else {
+        } else { // castling moves calls recursively once. Having these two state updates in else, ensures game state is only updated once
             this.turnNum++;
             this.inTurn = this.inTurn * -1;
 
@@ -102,6 +104,7 @@ class Chess {
     }
 }
 
+// piece class. Contains relevant information for piece, and a pointer to corresponding html element (if such exists)
 class Piece {
     constructor(type, team, row, column, htmlElement){
         this.type = type;
@@ -149,6 +152,7 @@ function getStartBoard(){
     return board;
 }
 
+// Deletes all html elements for the pieces in the given chess object
 function deleteHtmlPieces(chess){
     console.log("Delete pieces called");
     if (chess == null){
@@ -172,6 +176,7 @@ function deleteHtmlPieces(chess){
     }
 }
 
+// deletes single piece html object
 function deleteHtmlPiece(chess, r, c){
     var board = chess.board;
     var piece = board[r][c];
@@ -189,6 +194,7 @@ function deleteHtmlPiece(chess, r, c){
     // console.log("Piece deleted");
 }
 
+//Creates and draws html elements corresponding to all pieces in given chess object
 function drawHtmlPieces(chess){ // should always call deleteHtmlPieces before
     var offset = document.getElementById("board_div").getBoundingClientRect();
     var top = offset.top;
@@ -203,14 +209,11 @@ function drawHtmlPieces(chess){ // should always call deleteHtmlPieces before
 function drawHtmlPiece(chess, r, c, top, left){
     var board = chess.board;
     var piece = board[r][c];
-    // console.log("stuff " + piece);
     if (piece == null){
         return;
     }
     var htmlElement = piece.htmlElement;
-    if (htmlElement == null){
-        // console.log("Start html null");
-        // console.log(getPieceImageName(piece));
+    if (htmlElement == null){ // If piece does not already have an html element attached
         var pieceImg = document.createElement('img');
         pieceImg.src = "resources/" + getPieceImageName(piece);
         pieceImg.style.transitionTimingFunction = "linear";
@@ -220,10 +223,10 @@ function drawHtmlPiece(chess, r, c, top, left){
         pieceImg.style.top = Math.round(top + 0.5 * lineWidth + squareLength * (7.5 - r));
         document.getElementById("chess_div_right").appendChild(pieceImg);
         piece.htmlElement = pieceImg;
-        // console.log("End html null");
-    } else {
+    } else { 
         console.log("Existing Piece found while drawing. Someone fucked up");
     }
+    // add event listeners to created pieces
     if (piece.team == chess.humanPlayer){
         piece.htmlElement.addEventListener('click', ownPieceEventHandler);
     } else {
@@ -232,6 +235,7 @@ function drawHtmlPiece(chess, r, c, top, left){
     piece.htmlElement.piece = piece;
 }
 
+// event handler for non human player pieces
 function enemyPieceEventHandler(event){
     if (waiting){
         console.log("Move in progress. Wait before doing more shit");
@@ -239,7 +243,6 @@ function enemyPieceEventHandler(event){
     }
     var htmlPiece = event.target;
     var piece = htmlPiece.piece;
-    // console.log("r = " + piece.row + ", c = " + piece.column);
 
     if (selectedPiece != null){
         console.log("Attempt move");
@@ -252,11 +255,10 @@ function enemyPieceEventHandler(event){
             enPassant: null,
             castle: null};
             attemptMove(move);
-        // attemptMove(selectedPiece.row, selectedPiece.column, piece.row, piece.column);
-        // moveElement(htmlPiece, 200, 200);
     }
 }
 
+// event handler for human player pieces
 function ownPieceEventHandler(event){
     if (waiting){
         console.log("Move in progress. Wait before doing more shit");
@@ -281,17 +283,15 @@ function ownPieceEventHandler(event){
     // waiting = false;
 }
 
+// event handler for chess board. I.e. any place on board which is not hidden by a chess peice html object
 function boardEventHandler(event){
     if (waiting){
         console.log("Move in progress. Wait before doing more shit");
         return;
     }
-    // waiting = true;
-    // console.log("Event " + event.clientX + " : " + event.clientY);
     var rect = event.target.getBoundingClientRect();
     var x = event.clientX - rect.left; //x position within the element.
     var y = event.clientY - rect.top;  //y position within the element.
-    // console.log(x, y);
     if (event.clientX < boardStartX || event.clientY < boardStartY){
         return;
     }
@@ -314,19 +314,22 @@ function boardEventHandler(event){
     attemptMove(move);
 }
 
+// Translates board (array with 8 arrays of length 8) indexing arguments to standard chess notation
 function rowColumnToChessNotation(row, column){
     var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
     return [letters[column], row + 1];
 }
 
+// send information to server to handle an attempted move
 function attemptMove(move){
     waiting = true;
     moveInProgress = move;
     var boardString = boardToString(globalChess.board);
-    // console.log(boardString);
+
+    // TODO: validation string is used for nothing presently. Reconsider if it should just be deleted
     var validation = {boardString: boardString, 
                       inTurn: globalChess.inTurn,
-                      humanPlayer: globalChess.humanPlayer}; // TODO: Presently not really using this
+                      humanPlayer: globalChess.humanPlayer}; 
     var message = {action: 'player move',  // codes might be more efficient (but will lower readability)
                    move: move,
                    id: id,
@@ -335,11 +338,15 @@ function attemptMove(move){
     // finishMove();
 }
 
+// Includes promotion argument in last attempted move
+// If move was illegal due to lacking promotion argument this will be called
 function promotionMove(promote){
     moveInProgress.promote = promote;
     attemptMove(moveInProgress);
 }
 
+// Perform move on globalchess, and update various UI elements 
+// Will be called after succesful move has been performed on server, and response have been received by client
 function finishMove(move){
     console.log("Finish move called");
     globalChess.move(move);
@@ -354,6 +361,8 @@ function finishMove(move){
     // console.log("TODO: finish move stuff");
 }
 
+// Translates board to a simple stringbased representation
+// Has probably been made superflous by resent changes
 function boardToString(board){
     var s = '';
     for(var r = 0; r < 8; r++){
@@ -374,6 +383,8 @@ function boardToString(board){
     return s;
 }
 
+// Returns the name of the png image corresponding to that kind of piece. 
+// Used when creating html elements corresponding to chess pieces
 function getPieceImageName(piece){
     var type = piece.type;
     var team = piece.team;
@@ -405,6 +416,7 @@ function getPieceImageName(piece){
     return typeString + "_" + colourString + ".png";
 }
 
+// Move html piece element from whereever it presently is to row 'r' and column 'c'
 function moveElementCell(element, r, c){
     console.log("MoveElementCell called", r, c);
     var toX = Math.round(c * 80 + boardStartX - 1);
@@ -414,29 +426,27 @@ function moveElementCell(element, r, c){
     moveElement(element, toX, toY);
 }
 
+// Move html piece element from whereever it presently is to given x and y coordinaters
 function moveElement(element, toX, toY){
-    // console.log("MoveElement called", toX, toY);
     var startX = parseInt(element.style.left);
     var startY = parseInt(element.style.top);
     var xDist = toX - startX;
     var yDist = toY - startY;
     var dist = Math.sqrt(xDist * xDist + yDist * yDist)
-    var animationTime = Math.floor(dist/.8);
-    // console.log("Animation time: " + animationTime);
+    var animationTime = Math.floor(dist/.8); // dist/800 -> 0.1s per square (80px) ish
 
-    // console.log(dist/800)
     element.style.transitionTimingFunction = "linear";
-    element.style.transitionDuration = "" + animationTime + "ms"; // dist/800 -> 0.1s per square (80px) ish
+    element.style.transitionDuration = "" + animationTime + "ms"; 
     element.style.top = toY;
     element.style.left = toX;
-    setTimeout(() =>{
+    setTimeout(() => { // Timeout to allow animation to finish before changing z-index
         element.style.zIndex = 1;
         element.style.transitionDuration = "0s";
     }, animationTime);
 }
 
 /**
- * Draws chess board. Numbering and all.
+ * Draws chess board on canvas. Numbering and all. Only board. No pieces.
  * @param {Canvas} canvas Pretty self explanatory
  */
 function drawChessBoard(canvas){
@@ -473,6 +483,7 @@ function drawChessBoard(canvas){
     }
 }
 
+// Sets up all UI and state corresponding to a completely new game
 function beginNewGame(newID, humanPlayer){
     id = newID;
     if (chess != null){
@@ -485,8 +496,8 @@ function beginNewGame(newID, humanPlayer){
     waiting = false;
 }
 
+// Sets up all UI and state corresponding to a loaded game
 function loadGame(gameID, pyBoard, turnNum, humanPlayer, inTurn){
-    // TODO turn num stuff
     id = gameID;
     var board = pythonToJsBoard(pyBoard);
     deleteHtmlPieces(globalChess);
@@ -497,6 +508,7 @@ function loadGame(gameID, pyBoard, turnNum, humanPlayer, inTurn){
     else { waiting = false; }
 }
 
+// sets Game Info html stuff such that it aligns with the given gameID and chess object
 function setUiInfo(gameID, chess){
     console.log("SetUiInfor called with ID: " + gameID);
     document.getElementById("id").innerHTML = gameID;
@@ -512,6 +524,7 @@ function setUiInfo(gameID, chess){
     document.getElementById("status").innerHTML = "Game in progress";
 }
 
+// Tranlates boardtype used in serverside python script, to client side board (TODO: Should be done serverside?)
 function pythonToJsBoard(pythonBoard){
     var jsBoard = [...Array(8)].map(e => Array(8));
     for (var r = 0; r < 8; r++) {
@@ -566,12 +579,6 @@ $(document).ready(() => {
         var message = {action: "load game",
                        id: gameID};
         webSocket.send(JSON.stringify(message));
-        // var promoteBox = document.getElementById("promoteBox");
-        // promoteBox.style.display = "block";
-        // setTimeout( () => {
-        //     promoteBox.style.display = "none";
-        // }, 5000);
-        // deleteHtmlPieces(globalChess);
     });
 
     document.getElementById("newGameButton").addEventListener("click", () => {
@@ -702,7 +709,8 @@ $(document).ready(() => {
 
 // TODO: let player play as black
 // TODO: Refactor css 
-// TODO: New game button deletes pieces before accept. If cancel option chosen, this may crash server
-// TODO: UI stuff for Id, Turn, ect. (Remember castling moves call move function twice)
+// TODO: New game button deletes pieces before accept. If cancel option chosen, this may crash server (done)
+// TODO: UI stuff for Id, Turn, ect. (Remember castling moves call move function twice) (done)
 // TODO: reconsider 'waiting' variable
 // TODO: Handle UI breaking down when scrolling/resizing
+// TODO: Proper function documentation

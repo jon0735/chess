@@ -8,10 +8,11 @@ var activeConnections = new Map();
 const clientPath = path.join(__dirname, '..', 'client');
 const pythonScriptPath = path.join(__dirname, '..', 'game', 'chess', 'chess_for_node.py');
 
+// Calls python script based on the requested client move
 function performPlayerMove(gameID, connID, move, validationString){
 
     if (!activeGames.has(gameID)){
-        //TODO load from memory
+        //TODO: load from memory
         if (!activeConnections.has(connID)){
             console.log("PerfromPlayerMove without gameID or connID existing");
             return;
@@ -134,7 +135,7 @@ function handleScriptData(data, gameID, connID, humanPlayer){
             activeGames.set(gameID, {chess: chess, humanPlayer: humanPlayer});
             console.log("New game created");
             break;
-        case 203:
+        case 203: // legal move that resulted in the game concluding (/win/lose/draw)
             console.log("Game ended");
             response.move = dataObj.move;
             response.winner = dataObj.winner;
@@ -152,7 +153,7 @@ function handleScriptData(data, gameID, connID, humanPlayer){
             console.log("Move failed (Error). Msg: " + response.msg);
             response.msg = "Server error encountered. I.e. server has a bug";
             break;
-        default: // Other weird whit
+        default: // Other weird stuff
             console.log("Script return status: " + response.status + ", msg: " + response.msg);
     }
 
@@ -191,7 +192,7 @@ server.listen(8210, () => {
 });
 
 webSocketServer.on('connection', ws => {
-    // TODO change from id stuff, to just send socket along as argument (maybe not. Gives weird reference error when trying)
+    // TODO: change from id stuff, to just send socket along as argument (maybe not. Gives weird reference error when trying)
     var connID = (Math.random().toString(36)+'00000000000000000').slice(2, 10); // random id
     while(activeConnections.has(connID)){
         connID = (Math.random().toString(36)+'00000000000000000').slice(2, 10); // random id again if colision
@@ -231,12 +232,11 @@ webSocketServer.on('connection', ws => {
   });
 
 // TODO: Let player play as black
-// TODO: Consider race conditions (is this even a thing in javascript async?)
 // TODO: Obvious security roblem in just using game ID for everything (e.g. can just try to load a ton of different IDs) (probably wont do anything about this)
 // TODO: Loading game from one tab, while being played from other tab, desyncs one instance (probably wont deal with this)
 // TODO: Surround parsing in try-catch to avoid server crash when illigeal information fed through sockets. (done)
 // TODO: Safeguard against injection attacks in player move
-// TODO: Go through this and client script removing validation string stuff
+// TODO: Go through this and client script removing or implementing validation string stuff
 
 // Codes:
 // 200 - Succesful player rmove
