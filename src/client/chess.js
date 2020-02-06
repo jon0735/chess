@@ -12,19 +12,15 @@ var webSocket;
 var moveInProgress; // TODO: Deal with this. Is used inconsistently
 
 class Chess {
-    constructor(humanPlayer, board, inTurn){
-        if (board === undefined){
-            board = getStartBoard();
-        }
-        if (humanPlayer === undefined){
-            humanPlayer = 1;
-        }
-        if (inTurn === undefined){
-            inTurn = 1;
-        }
+    constructor(humanPlayer, board, inTurn, turnNum){
+        if (board === undefined){ board = getStartBoard(); }
+        if (humanPlayer === undefined){ humanPlayer = 1; }
+        if (inTurn === undefined){ inTurn = 1; }
+        if (turnNum === undefined){ turnNum = 1; }
         this.board = board;
         this.inTurn = inTurn;
         this.humanPlayer = humanPlayer;
+        this.turnNum = turnNum;
     }
 
     move(move){
@@ -98,6 +94,10 @@ class Chess {
                 enPassant: null,
                 castle: null};
             this.move(rookMove); // May need changing based on future chess state changes (turn number e.g.)
+        } else {
+            this.turnNum++;
+            this.inTurn = this.inTurn * -1;
+
         }
     }
 }
@@ -343,8 +343,15 @@ function promotionMove(promote){
 function finishMove(move){
     console.log("Finish move called");
     globalChess.move(move);
+    if (globalChess.inTurn == globalChess.humanPlayer) { waiting = false; }
+    document.getElementById("turnNum").innerHTML = globalChess.turnNum;
+    var inTurn;
+    if (globalChess.inTurn == 1){ inTurn = "White"; }
+    else {inTurn = "Black";}
+    document.getElementById("inTurn").innerHTML = inTurn;
+
     // waiting = false;
-    console.log("TODO: finish move stuff");
+    // console.log("TODO: finish move stuff");
 }
 
 function boardToString(board){
@@ -466,27 +473,43 @@ function drawChessBoard(canvas){
     }
 }
 
-function beginNewGame(newId, humanPlayer){
-    id = newId;
+function beginNewGame(newID, humanPlayer){
+    id = newID;
     if (chess != null){
         deleteHtmlPieces(chess);
     }
     var chess = new Chess(humanPlayer);
     drawHtmlPieces(chess);
     globalChess = chess;
+    setUiInfo(newID, globalChess);
     waiting = false;
 }
 
-function loadGame(gameID, pyBoard, turn, humanPlayer, inTurn){
+function loadGame(gameID, pyBoard, turnNum, humanPlayer, inTurn){
     // TODO turn num stuff
     id = gameID;
     var board = pythonToJsBoard(pyBoard);
     deleteHtmlPieces(globalChess);
-    globalChess = new Chess(humanPlayer, board, inTurn);
+    globalChess = new Chess(humanPlayer, board, inTurn, turnNum);
     drawHtmlPieces(globalChess);
-    if (inTurn != humanPlayer) {
-        waiting = true;
-    }
+    setUiInfo(gameID, globalChess);
+    if (inTurn != humanPlayer) { waiting = true; } 
+    else { waiting = false; }
+}
+
+function setUiInfo(gameID, chess){
+    console.log("SetUiInfor called with ID: " + gameID);
+    document.getElementById("id").innerHTML = gameID;
+    document.getElementById("turnNum").innerHTML = chess.turnNum;
+    var inTurn;
+    if (globalChess.inTurn == 1){ inTurn = "White"; }
+    else {inTurn = "Black";}
+    document.getElementById("inTurn").innerHTML = inTurn;
+    var humanPlayerString;
+    if (globalChess.humanPlayer == 1){ humanPlayerString = "White"; }
+    else {humanPlayerString = "Black";}
+    document.getElementById("humanPlayer").innerHTML = humanPlayerString;
+    document.getElementById("status").innerHTML = "Game in progress";
 }
 
 function pythonToJsBoard(pythonBoard){
@@ -626,12 +649,13 @@ $(document).ready(() => {
                 else {msg = "Game over. Draw"}
                 finishMove(response.move);
                 alert(msg);
+                document.getElementById("status").innerHTML = msg;
                 waiting = true;
                 break;
             case 210:
                 console.log("Recieved ai move from server");
                 finishMove(response.move);
-                waiting = false;
+                // waiting = false;
                 break;
             case 220:
                 console.log("Needs promotion argument");

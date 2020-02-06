@@ -115,8 +115,6 @@ function loadGame(gameID, connID){
     }
 }
 
-
-
 function handleScriptData(data, gameID, connID, humanPlayer){
     let dataObj = JSON.parse(data);
     let status = dataObj.status;
