@@ -2,7 +2,7 @@ import numpy as np
 import nn_util
 
 
-class NaughtCrossNeuralNet:
+class NeuralNet:
     def __init__(self):
         self.W = []
         self.b = []

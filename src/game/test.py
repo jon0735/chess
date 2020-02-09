@@ -6,9 +6,9 @@ import sys
 from chess.chess import Chess
 from chess.chess import Move
 from naught_cross.naught_cross import NaughtCross
-from ai.ai import NaughtAI
-from ai.tree import Node
-from ai.nc_nn import NaughtCrossNeuralNet as NN
+from ai.naught_ai import NaughtAI
+from ai.naught_tree import Node as NaughtNode
+from ai.neural_net import NeuralNet as NN
 
 import naught_cross.naught_util as naught_util
 import ai.nn_util as nn_util
@@ -238,10 +238,10 @@ class TestDeterministicAI(unittest.TestCase):
     # end_states = 0
     @unittest.skipIf(skip, "Building trees takes to fucking long")
     def setUp(self):
-        self.ai = NaughtAI(NaughtCross(starting_player='X'))
+        self.naught_ai = NaughtAI(NaughtCross(starting_player='X'))
 
     def test_player_default(self):
-        self.assertEqual('X', self.ai.player)
+        self.assertEqual('X', self.naught_ai.player)
 
     def test_player(self):
         ai = NaughtAI(NaughtCross(), player='X')
@@ -252,15 +252,15 @@ class TestDeterministicAI(unittest.TestCase):
         self.assertRaises(ValueError, NaughtAI, NaughtCross(), "Trololo")
 
     def test_evaluate_board(self):
-        score = self.ai.score_board(board=x_win_nc_board)
+        score = self.naught_ai.score_board(board=x_win_nc_board)
         self.assertEqual(score, 1)
-        score = self.ai.score_board(board=o_win_nc_board)
+        score = self.naught_ai.score_board(board=o_win_nc_board)
         self.assertEqual(score, -1)
-        score = self.ai.score_board(board=empty_nc_board)
+        score = self.naught_ai.score_board(board=empty_nc_board)
         self.assertEqual(score, None)
-        score = self.ai.score_board(board=stale_mate_nc_board)
+        score = self.naught_ai.score_board(board=stale_mate_nc_board)
         self.assertEqual(score, 0)
-        score = self.ai.score_board(board=not_finished_nc_board1)
+        score = self.naught_ai.score_board(board=not_finished_nc_board1)
         self.assertEqual(score, None)
 
     def test_build_state_tree(self):
@@ -292,23 +292,23 @@ class TestDeterministicAI(unittest.TestCase):
     def test_min_max_tree(self):
         root = self.get_small_test_tree()
 
-        ai_strats._min_max_tree(self.ai, root, is_my_turn=True)
+        ai_strats._min_max_tree(self.naught_ai, root, is_my_turn=True)
         self.assertEqual(root.score, 0)
         self.assertEqual(root.children[0].score, 0)
         self.assertEqual(root.best_child, 0)
 
         root = self.get_small_test_tree()
 
-        ai_strats._min_max_tree(self.ai, root, is_my_turn=False)
+        ai_strats._min_max_tree(self.naught_ai, root, is_my_turn=False)
         self.assertEqual(root.score, -1)
         self.assertEqual(root.children[0].score, 1)
         self.assertEqual(root.best_child, 1)
 
     def test_make_next_move(self):
-        self.ai.tree = self.full_tree_min_maxed
-        # self.ai.best_moves = self.ai.find_best_moves(root=self.full_tree_min_maxed, is_my_turn=True)
-        nc = self.ai.nc
-        success, move, msg = self.ai.make_move()
+        self.naught_ai.tree = self.full_tree_min_maxed
+        # self.naught_ai.best_moves = self.naught_ai.find_best_moves(root=self.full_tree_min_maxed, is_my_turn=True)
+        nc = self.naught_ai.nc
+        success, move, msg = self.naught_ai.make_move()
         # print(success)
         self.assertTrue(success, "failed with msg: " + msg)
         # print("\n\n ", nc.board[move[0]], "\n\n")
@@ -337,20 +337,20 @@ class TestDeterministicAI(unittest.TestCase):
         # naught_util.print_board(nc.board)
 
     def test_inform_opponent_move(self):
-        self.ai.tree = self.full_tree_min_maxed
-        # self.ai.best_moves = self.ai.find_best_moves(root=self.full_tree_min_maxed, is_my_turn=True)
-        nc = self.ai.nc
-        self.ai.make_move()
+        self.naught_ai.tree = self.full_tree_min_maxed
+        # self.naught_ai.best_moves = self.naught_ai.find_best_moves(root=self.full_tree_min_maxed, is_my_turn=True)
+        nc = self.naught_ai.nc
+        self.naught_ai.make_move()
         success, msg = nc.make_move((1, 1), 'O')
         # print(msg)
-        success, msg = self.ai.inform_opponent_move((1, 1))
+        success, msg = self.naught_ai.inform_opponent_move((1, 1))
         # print(msg)
         self.assertTrue(success)
         self.assertEqual(msg, "Success")
-        success, move, msg = self.ai.make_move()
+        success, move, msg = self.naught_ai.make_move()
         self.assertTrue(success, "legal move disallowed. move = " + str(move))
         self.assertEqual(msg, "Move performed")
-        self.assertTrue(np.array_equal(naught_util.char_to_i1_board(nc.board), self.ai.expected_board),
+        self.assertTrue(np.array_equal(naught_util.char_to_i1_board(nc.board), self.naught_ai.expected_board),
                         "Failed the expected stuff")
 
     def test_o_ai(self):
@@ -378,21 +378,21 @@ class TestDeterministicAI(unittest.TestCase):
 
     @staticmethod
     def get_small_test_tree():
-        root = Node()
-        root.children.append(Node())
-        root.children.append(Node(board=naught_util.char_to_i1_board(o_win_nc_board), move=(None, -1)))
-        root.children[0].children.append(Node(board=naught_util.char_to_i1_board(stale_mate_nc_board), move=(None, -1)))
-        root.children[0].children.append(Node(board=naught_util.char_to_i1_board(x_win_nc_board), move=(None, 1)))
+        root = NaughtNode()
+        root.children.append(NaughtNode())
+        root.children.append(NaughtNode(board=naught_util.char_to_i1_board(o_win_nc_board), move=(None, -1)))
+        root.children[0].children.append(NaughtNode(board=naught_util.char_to_i1_board(stale_mate_nc_board), move=(None, -1)))
+        root.children[0].children.append(NaughtNode(board=naught_util.char_to_i1_board(x_win_nc_board), move=(None, 1)))
         return root
 
 
 class TestRandomAi(unittest.TestCase):
     def setUp(self):
         self.nc = NaughtCross(starting_player='X')
-        self.ai = NaughtAI(self.nc, strat="random")
+        self.naught_ai = NaughtAI(self.nc, strat="random")
 
     def test_make_random_move(self):
-        success = self.ai.make_move()
+        success = self.naught_ai.make_move()
         self.assertTrue(success)
         count_x = 0
         count_o = 0
@@ -407,7 +407,7 @@ class TestRandomAi(unittest.TestCase):
         self.assertEqual(count_o, 0)
 
     def test_inform_no_update(self):
-        success, msg = self.ai.inform_opponent_move((0, 1))
+        success, msg = self.naught_ai.inform_opponent_move((0, 1))
         self.assertTrue(success)
         self.assertEqual(msg, "No update for this strategy")
 
@@ -415,10 +415,10 @@ class TestRandomAi(unittest.TestCase):
 class TestNNAi(unittest.TestCase):
     def setUp(self):
         self.nc = NaughtCross(starting_player='X')
-        self.ai = NaughtAI(self.nc, strat="nn")
+        self.naught_ai = NaughtAI(self.nc, strat="nn")
 
     def test_make_nn_move(self):
-        success = self.ai.make_move()
+        success = self.naught_ai.make_move()
         self.assertTrue(success)
         count_x = 0
         count_o = 0
@@ -1411,7 +1411,7 @@ class TestChess(unittest.TestCase):
 
 # 1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 10 = queen
     
-class TestChessForNode(unittest.TestCase):
+class TestChessForNaughtNode(unittest.TestCase):
 
     def test_pack_chess(self):
         packed_chess = chess_for_node.pack_chess(Chess())

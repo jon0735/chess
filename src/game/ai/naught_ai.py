@@ -4,8 +4,8 @@ import copy
 import naught_util
 import ai_strats
 import numpy as np
-from nc_nn import NaughtCrossNeuralNet
-from tree import Node
+from neural_net import NeuralNet
+from naught_tree import Node
 
 
 class NaughtAI:
@@ -30,7 +30,7 @@ class NaughtAI:
             self.inform_strat = ai_strats.inform_no_update
             if nn is None:
                 # print("No Neural net input. Creating new")
-                self.nn = NaughtCrossNeuralNet()
+                self.nn = NeuralNet()
                 self.nn.init_net(input_size=10, output_size=1, hidden_size=20, number_of_hidden=10)
             if depth == float("inf"):
                 # print("No tree depth set. Setting to 4")

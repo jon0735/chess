@@ -3,7 +3,7 @@ import random
 import naught_util
 # from ai import NaughtAI
 import numpy as np
-from tree import Node
+from naught_tree import Node
 import copy
 import nn_util
 

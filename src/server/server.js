@@ -227,7 +227,6 @@ webSocketServer.on('connection', ws => {
             var response = {status: 501, msg: "Server error encountered. Most likely due to nonsense message sent to server"};
             ws.send(JSON.stringify(response));
         }
-    
     });
   });
 
