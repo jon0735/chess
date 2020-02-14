@@ -507,7 +507,7 @@ class Chess:
             self.winner = None
             self.last_move = None
             self.legal_castles = {'(0, 2)' : True, '(0, 6)' : True, '(7, 2)' : True, '(7, 6)' : True}  # String keys for easier node communication
-            self.legal_moves = get_legal_moves(self, self.in_turn) # Make function just for start, to reduce init time
+            self.legal_moves = get_legal_moves(self, self.in_turn) # TODO: Make function just for start, to reduce init time
         else: # hacky way needed for chess_for_node.py
             self.__dict__ = chess_dict
     
@@ -522,7 +522,7 @@ class Chess:
             and self.legal_castles == other.legal_castles \
             and np.array_equal(self.legal_moves, other.legal_moves) \
         
-        # # Good for debugging below
+        # # Good __eq__ for debugging below
         # if not np.array_equal(self.board, other.board):
         #     print("Board")
         #     return False
@@ -642,7 +642,7 @@ class Chess:
         self.legal_moves = get_legal_moves(self, self.in_turn)
         checks, from_pos = is_in_check(self, self.in_turn)
         if checks:
-            if len(self.legal_moves) == 0:  # No legal moves for player + in check -> Checkmate
+            if not self.legal_moves:  # No legal moves for player + in check -> Checkmate
                 winner = self.in_turn * -1  # Already changed turn, so winner was player in last turn
                 winner_string = "white" if winner == 1 else "black"
                 msg += ", Checkmate. Winner is " + winner_string
@@ -650,7 +650,7 @@ class Chess:
                 self.is_in_progress = False
             else:
                 msg += ", check from " + str(from_pos)
-        elif len(self.legal_moves) == 0:  # No legal moves + not in check -> Game is a draw. Weird fucking rule. Forced into a no move position = draw -.-
+        elif len(self.legal_moves) == 0:  # No legal moves + not in check -> Game is a draw. Weird fucking rule. Forced into a no move position -> draw apparently.. 
             msg += ", no legal moves this turn. Game is a stalemate which means the game is a draw"
             self.is_in_progress = False
         if self.draw_counter >= 50:

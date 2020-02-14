@@ -13,6 +13,7 @@ from ai.neural_net import NeuralNet as NN
 import naught_cross.naught_util as naught_util
 import ai.nn_util as nn_util
 import ai.ai_strats as ai_strats
+import ai.chess_ai as chess_ai
 import chess.chess_util as chess_util
 import chess.chess as chess
 import chess.chess_for_node as chess_for_node
@@ -227,7 +228,7 @@ class TestNaughtUtil(unittest.TestCase):
 #     def test1(self):
 #         self.assertTrue(False, "NO TESTS FOR NODE IMPLEMENTED")
 
-
+# Naught and crosses ai
 class TestDeterministicAI(unittest.TestCase):
     skip = True
     if not skip:
@@ -1438,7 +1439,21 @@ class TestChessForNaughtNode(unittest.TestCase):
     def test_make_ai_move(self):
         packed_chess = chess_for_node.pack_chess(Chess())
         result = chess_for_node.makeAiMove("22", packed_chess)
+        self.assertEqual(result["status"], 210)
 
+
+class TestChessAI(unittest.TestCase):
+
+    def test_move_is_returned(self):
+        chess = Chess()
+        move = chess_ai.choose_move_ab(chess)
+        self.assertIsNotNone(move, "Chess ai retuned None move on start chess")
+
+    def test_sum_eval_function(self):
+        chess = Chess()
+        chess_content = {"move": None, "chess": chess}
+        value = chess_ai.sum_eval(chess_content)
+        self.assertEqual(0, value, "Sum evaluation function does not return 0 on a start board")
 
 
 if __name__ == '__main__':  # Does not work from PyCharm python console. Use terminal
