@@ -1446,7 +1446,7 @@ class TestChessAI(unittest.TestCase):
 
     def test_move_is_returned(self):
         chess = Chess()
-        move = chess_ai.choose_move_ab(chess, depth=1)
+        move = chess_ai.choose_move_ab(chess, depth=4)
         self.assertIsNotNone(move, "Chess ai retuned None move on start chess")
 
     def test_sum_eval_function(self):

@@ -4,6 +4,8 @@ from ai.tree import Node
 
 # Most of this could be implemented more generally, instead of being hardcoded for chess. Consider doing this (If I suddenly have a bunch of free time (lol))
 
+count = 0
+
 def sum_eval(chess_content):
     chess = chess_content["chess"]
     if not chess.is_in_progress:
@@ -44,8 +46,12 @@ def choose_move_ab(chess, depth=4, evaluation_function=None):
 # TODO: Optimize (e.g. evaluate better looking branches first, iterative deepening)
 # TODO: Consider: current approach does not lend itself easily to reusing tree next time. Only some branches are created, with no knowledge of 
 # TODO: Generalize s.t. it can be used for other things than chess (probably wont do ? )
-def alpha_beta_prune(node, depth, maximizing, alpha=-float('inf'), beta=float('inf'), eval_fun=sum_eval):
-    # print("AB-Prune. depth: ", depth, ", maximizing: ", maximizing, "a: ", alpha, "b: ", beta)
+def alpha_beta_prune(node, depth, maximizing, alpha=-float('inf'), beta=float('inf'), eval_fun=sum_eval, count=None):    
+    # if count is None:
+    #     count = {"count": 0}
+    # else:
+    #     count["count"] += 1
+    # print("AB-Prune. depth: ", depth, ", maximizing: ", maximizing, ", a: ", alpha, ", b: ", beta, ", count: ", count["count"])
     assert depth >= 0
     if depth == 0:
         node.value = eval_fun(node.content)
@@ -58,7 +64,7 @@ def alpha_beta_prune(node, depth, maximizing, alpha=-float('inf'), beta=float('i
             chess_copy.move(move)
             child_node = Node(content={"chess": chess_copy, "move": move})
             node.children.append(child_node)
-            child_val = alpha_beta_prune(child_node, depth - 1, not maximizing)
+            child_val = alpha_beta_prune(child_node, depth - 1, not maximizing, alpha=alpha, beta=beta, count=count)
             child_node.value = child_val
             value = max(value, child_val)
             alpha = max(value, alpha)
@@ -73,10 +79,10 @@ def alpha_beta_prune(node, depth, maximizing, alpha=-float('inf'), beta=float('i
             chess_copy.move(move)
             child_node = Node(content={"chess": chess_copy, "move": move})
             node.children.append(child_node)
-            child_val = alpha_beta_prune(child_node, depth - 1, not maximizing)
+            child_val = alpha_beta_prune(child_node, depth - 1, not maximizing, alpha=alpha, beta=beta, count=count)
             child_node.value = child_val
             value = min(value, child_val)
-            alpha = min(value, alpha)
+            beta = min(value, beta)
             if alpha >= beta:
                 break
         return value

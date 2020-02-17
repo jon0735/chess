@@ -104,7 +104,7 @@ def makeAiMove(id, chess_json):
         # string += "unpacked"
         # TODO Handle 
         # move = random.choice(chess.legal_moves) # TODO Ai stuff
-        move = choose_move_ab(chess, depth=2)
+        move = choose_move_ab(chess, depth=3)
         # string += "\nrandomMove"
         string = str(move)
 
