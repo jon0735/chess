@@ -117,7 +117,16 @@ function loadGame(gameID, connID){
 }
 
 function handleScriptData(data, gameID, connID, humanPlayer){
-    let dataObj = JSON.parse(data);
+    var dataObj;
+    try {
+        dataObj = JSON.parse(data);
+    } catch (error){
+        dataObj = {status: 500, msg: "Shit happened in server script"}
+        console.log("Error in json parsing");
+        console.log(data.toString());
+        console.log(error);
+    }
+    // let dataObj = JSON.parse(data);
     let status = dataObj.status;
     var response = {status: status, id: gameID, msg: dataObj.msg}; // Consider including the validation string stuff
     switch (status) {
