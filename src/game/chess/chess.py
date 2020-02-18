@@ -1,4 +1,5 @@
 import copy
+import time
 
 import chess_util
 import numpy as np
@@ -129,7 +130,7 @@ def _is_legal_castling(chess, move):
     frm = move.frm
     to = move.to
     board = chess.board
-    player = board[frm] / abs(board[frm])
+    player = int(board[frm] / abs(board[frm]))
     if frm == (0, 4) or frm == (7, 4):
         row = frm[0]  # 0 if white move, 7 if black. Using this variable allows using same code for both colors below
         if to == (row, 2):  # If castling left
@@ -216,44 +217,58 @@ def _is_legal_move(chess, move, in_turn):
     else:
         raise ValueError("Is_legal_move error: piece_type: ", piece_type, ", not recognised")
 
-
-def _get_legal_pawn_moves(board, pos):
+# DOES NOT handle en passant. Is handled in _get_legal_moves()
+def _get_legal_pawn_moves(board, pos, moves=None):
     # print("POS: " + str(pos))
     player = board[pos]
     row = pos[0]
     column = pos[1]
-    moves = []
-    # TODO Handle En passant
+    if moves is None:
+        moves = []
+
+    legal_tos = []
+
+    needs_promotion = (row == 1 and player == -1) or (row == 6 and player == 1)
+
     if not _is_outside_board((row + player, column)) and board[row + player, column] == 0:
-        moves.append(Move(pos, (row + player, column)))
+        # moves.append(Move(pos, (row + player, column)))
+        legal_tos.append((row + player, column))
+        # middle = True
         if (player == 1 and row == 1) or (player == -1 and row == 6):
             if board[row + 2 * player, column] == 0:
-                moves.append(Move(pos, (row + 2 * player, column)))
+                legal_tos.append((row + 2 * player, column))
+
+                # moves.append(Move(pos, (row + 2 * player, column)))
+            
     left_attack = (row + player, column - 1)
     right_attack = (row + player, column + 1)
     if not _is_outside_board(left_attack) and board[left_attack] * player < 0:
-        moves.append(Move(pos, left_attack))
+        legal_tos.append(left_attack)
+        # moves.append(Move(pos, left_attack))
     if not _is_outside_board(right_attack) and board[right_attack] * player < 0:
-        moves.append(Move(pos, right_attack))
+        # moves.append(Move(pos, right_attack))
+        legal_tos.append(right_attack)
     
     # Handle promotion
     if (row == 1 and player == -1) or (row == 6 and player == 1):
-        temp_moves = []
-        for move in moves:
-            to = move.to
-            temp_moves.append(Move(pos, to, promote=2))
-            temp_moves.append(Move(pos, to, promote=3))
-            temp_moves.append(Move(pos, to, promote=4))
-            temp_moves.append(Move(pos, to, promote=10))
-        moves = temp_moves
-
+        # temp_moves = []
+        for to in legal_tos:
+            # to = move.to
+            moves.append(Move(pos, to, promote=2))
+            moves.append(Move(pos, to, promote=3))
+            moves.append(Move(pos, to, promote=4))
+            moves.append(Move(pos, to, promote=10))
+    else:
+        for to in legal_tos:
+            moves.append(Move(pos, to))
     return moves
 
 
-def _get_legal_rook_moves(board, pos):
+def _get_legal_rook_moves(board, pos, moves=None):
     player = 1 if board[pos] > 0 else -1
     directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-    moves = []
+    if moves is None:
+        moves = []
     for d in directions:
         dist = 1
         while True:
@@ -273,12 +288,14 @@ def _get_legal_rook_moves(board, pos):
     return moves
 
 
-def _get_legal_knight_moves(board, pos):
+def _get_legal_knight_moves(board, pos, moves=None):
     # if abs(board[pos]) != 3:
     #     raise EnvironmentError("Non-knight found at what was supposed to be knight pos")
+    if moves is None:
+        moves = []
     player = 1 if board[pos] > 0 else -1
     pos_list = [(1, 2), (1, -2), (2, 1), (2, -1), (-1, 2), (-1, -2), (-2, 1), (-2, -1)]
-    moves = []
+    # moves = []
     for p in pos_list:
         to = (p[0] + pos[0], p[1] + pos[1])
         if not _is_outside_board(to) and board[to] * player <= 0:
@@ -286,10 +303,11 @@ def _get_legal_knight_moves(board, pos):
     return moves
 
 
-def _get_legal_bishop_moves(board, pos):
+def _get_legal_bishop_moves(board, pos, moves=None):
     player = 1 if board[pos] > 0 else -1
     directions = [(1, 1), (-1, 1), (1, -1), (-1, -1)]
-    moves = []
+    if moves is None:
+        moves = []
     for d in directions:
         dist = 1
         while True:
@@ -307,15 +325,18 @@ def _get_legal_bishop_moves(board, pos):
     return moves
 
 
-def _get_legal_queen_moves(board, pos):
-    rook_moves = _get_legal_rook_moves(board, pos)
-    bishop_moves = _get_legal_bishop_moves(board, pos)
-    return rook_moves + bishop_moves
+def _get_legal_queen_moves(board, pos, moves=None):
+    if moves is None:
+        moves = []
+    rook_moves = _get_legal_rook_moves(board, pos, moves=moves)
+    bishop_moves = _get_legal_bishop_moves(board, pos, moves=moves)
+    return moves
 
 # Does NOT handle castling
-def _get_legal_king_moves(board, pos):
+def _get_legal_king_moves(board, pos, moves=None):
     player = 1 if board[pos] > 0 else -1
-    moves = []
+    if moves is None:
+        moves = []
     for i in [-1, 0, 1]:
         for j in [-1, 0, 1]:
             if i == 0 and j == 0:
@@ -332,32 +353,34 @@ def _get_legal_king_moves(board, pos):
 def get_legal_moves(chess, player):
     board = chess.board
     moves = []
+    king_pos = None
     for i, row in enumerate(board):
         for j, piece in enumerate(row):
             if player * piece > 0:
                 piece_type = piece * player
                 if piece_type == 1:
-                    moves = moves + _get_legal_pawn_moves(board, (i, j))
+                    _get_legal_pawn_moves(board, (i, j), moves=moves)
                 elif piece_type == 2:
-                    moves = moves + _get_legal_rook_moves(board, (i, j))
+                    _get_legal_rook_moves(board, (i, j), moves=moves)
                 elif piece_type == 3:
-                    moves = moves + _get_legal_knight_moves(board, (i, j))
+                    _get_legal_knight_moves(board, (i, j), moves=moves)
                 elif piece_type == 4:
-                    moves = moves + _get_legal_bishop_moves(board, (i, j))
+                    _get_legal_bishop_moves(board, (i, j), moves=moves)
                 elif piece_type == 10:
-                    moves = moves + _get_legal_queen_moves(board, (i, j))
+                    _get_legal_queen_moves(board, (i, j), moves=moves)
                 elif piece_type == 100:
-                    moves = moves + _get_legal_king_moves(board, (i, j))
+                    king_pos = (i, j)
+                    _get_legal_king_moves(board, (i, j), moves=moves)
                 else:
                     raise ValueError("Is_legal_move error: piece_type: ", piece_type, ", not recognised")
     legal_moves = []
     testing_chess = copy.deepcopy(chess)
     # testing_board = copy.deepcopy(board)
-    king_pos = _find_king(testing_chess.board, player)
+    # if king_pos is None:
+    #     king_pos = _find_king(testing_chess.board, player)
     for move in moves:
         to = move.to
         frm = move.frm
-        # TODO handle that weird pawn move
         old_to = board[to]
         old_frm = board[frm]
         testing_chess.board[to] = old_frm
@@ -422,34 +445,69 @@ def is_in_check(chess, player, king_pos=None):
         king_pos = _find_king(board, player)
     if king_pos is None:  # No king found -> no king in board -> big error or testing scenario
         return False, None
-    for i, row in enumerate(board):
-        for j, piece in enumerate(row):
-            if piece * player < 0:  # This means the piece is the opponents.
-                promote_arg = 10 if (abs(piece) == 1 and i + 2.5 * player == 3.5) else None  # Checks if promote arg needs to be included in Move. i + 2.5 * player == 3.5 means that the pawn is at the row just before the final
-                legal, msg = _is_legal_move(chess, Move((i, j), king_pos, promote=promote_arg), player * -1)
-                # if i == 6 and j == 5:
-                #     # chess_util.print_board(chess.board)
-                #     print(i - 2.5 * player)
-                #     print(legal)
-                #     print(msg)
-
-                if legal:
-                    return True, (i, j)
+    # Knight check
+    enemy_knight_val = -3 * player 
+    for pos in [(1, 2), (1, -2), (2, 1), (2, -1), (-1, 2), (-1, -2), (-2, 1), (-2, -1)]:
+        p = (pos[0] + king_pos[0], pos[1] + king_pos[1])
+        if _is_outside_board(p):
+            continue
+        if board[p] == enemy_knight_val:
+            return True, p
+    
+    # Queen, bishop, rook checks
+    enemy_queen_val = -10 * player
+    for row in [-1, 0, 1]:
+        for column in [-1, 0, 1]:
+            if row == column and row == 0:
+                continue
+            checker = -2 * player if abs(row) + abs(column) == 1 else -4 * player  #Piece that can check king is 2 (rook) if horizontal/vertical (i.e. either row or column is 0) otherwise bishop (4)
+            dist = 0
+            while True:
+                dist += 1
+                pos = (king_pos[0] + (row * dist), king_pos[1] + (column * dist))
+                # print(pos)
+                if _is_outside_board(pos):
+                    break
+                piece = board[pos]
+                # if piece * player > 0: # Friendly piece. Can't be attacked from that direction
+                #     break
+                if piece == 0: # No piece. Can possibly be attacked from that direction
+                    continue
+                if piece == enemy_queen_val or piece == checker: # Enemy piece which can attack
+                    return True, pos
+                else: # there is a piece on the spot, but not one which can attack -> King cannot be attacked from this direction
+                    break
+    # Pawn checks
+    left_pos = (king_pos[0] + player, king_pos[1] + 1)
+    # print(left_pos)
+    if (not _is_outside_board(left_pos)) and (board[left_pos] == -1 * player):
+        return True, left_pos
+    right_pos = (king_pos[0] + player, king_pos[1] - 1)
+    if not _is_outside_board(right_pos) and board[right_pos] == -1 * player:
+        return True, right_pos
     return False, None
 
 
-# def is_checkmated(board, player, king_pos=None):
-#     if king_pos is None:
-#         king_pos = _find_king(board, player)
-#     if king_pos is None:  # No king found -> no king in board -> big error or testing scenario
-#         return False
-#     testing_board = copy.deepcopy(board)
-#     for i, row in enumerate(board):
-#         for j, piece in enumerate(row):
-#             if piece * player > 0:
-#                 # TODO Multi-thread <- wtf did I mean by this
-#                 # TODO Stuff! <- Well that's a fucking useless message
-#                 pass
+    # board = chess.board
+    # if king_pos is None:
+    #     king_pos = _find_king(board, player)
+    # if king_pos is None:  # No king found -> no king in board -> big error or testing scenario
+    #     return False, None
+    # for i, row in enumerate(board):
+    #     for j, piece in enumerate(row):
+    #         if piece * player < 0:  # This means the piece is the opponents.
+    #             promote_arg = 10 if (abs(piece) == 1 and i + 2.5 * player == 3.5) else None  # Checks if promote arg needs to be included in Move. i + 2.5 * player == 3.5 means that the pawn is at the row just before the final
+    #             legal, msg = _is_legal_move(chess, Move((i, j), king_pos, promote=promote_arg), player * -1)
+    #             # if i == 6 and j == 5:
+    #             #     # chess_util.print_board(chess.board)
+    #             #     print(i - 2.5 * player)
+    #             #     print(legal)
+    #             #     print(msg)
+
+    #             if legal:
+    #                 return True, (i, j)
+    # return False, None
+
 
 class Move:
     def __init__(self, frm, to, promote=None, move_dict=None):
@@ -521,6 +579,138 @@ class Chess:
             and self.last_move == other.last_move \
             and self.legal_castles == other.legal_castles \
             and np.array_equal(self.legal_moves, other.legal_moves) \
+
+    def move(self, move, debug=False, return_extra=False, time_dict=None):
+        if time_dict is None:
+            time_dict = {"start": 0, 
+                        "is_legal": 0, 
+                        "copy": 0, 
+                        "mid1": 0, 
+                        "castleEnPassantCheck": 0, 
+                        "is_in_check1": 0, 
+                        "get_legal_moves": 0, 
+                        "is_in_check2": 0}
+        time_start = time.clock()
+        if return_extra:
+            extra = {'promote': move.promote, 'enPassant': None, 'castle': None}
+        frm = move.frm
+        to = move.to
+
+        if not self.is_in_progress:
+            return False, "Game already concluded"
+        time_dict["start"] += time.clock() - time_start
+        time_start = time.clock()
+        legal, msg = _is_legal_move(self, move, self.in_turn) 
+        time_dict["is_legal"] += time.clock() - time_start
+        
+        if not legal:
+            return False, msg
+
+        time_start = time.clock()
+        backup_board = copy.deepcopy(self.board)  # backup to rollback if move puts player in check
+        time_dict["copy"] += time.clock() - time_start
+
+        time_start = time.clock()
+        resets_draw_counter = True if self.board[to] != 0 or abs(self.board[frm]) == 1 else False  # I.e. if pawn move or capture move
+        self.board[to] = self.board[frm]
+        self.board[frm] = 0
+
+        if move.promote is not None and move.promote in [1, 2, 3, 4, 10]:
+            self.board[to] = move.promote * self.in_turn
+
+        time_dict["mid1"] += time.clock() - time_start
+        time_start = time.clock()
+
+        if msg == "Legal castling move":  # Inelegant to check on msg string
+            if to == (0, 2):
+                self.board[0, 3] = 2
+                self.board[0, 0] = 0
+                if return_extra:
+                    extra['castle'] = [(0, 0), (0, 3)] 
+            elif to == (0, 6):
+                self.board[0, 5] = 2
+                self.board[0, 7] = 0
+                if return_extra:
+                    extra['castle'] = [(0, 7), (0, 5)] 
+            elif to == (7, 2):
+                self.board[7, 3] = -2
+                self.board[7, 0] = 0
+                if return_extra:
+                    extra['castle'] = [(7, 0), (7, 3)] 
+            elif to == (7, 6):
+                self.board[7, 5] = -2
+                self.board[7, 7] = 0
+                if return_extra:
+                    extra['castle'] = [(7, 7), (7, 5)]
+        
+        if msg == "Legal En Passant":  # Again. Ugly shit
+            self.board[to[0] - self.in_turn, to[1]] = 0
+            is_capture_move = True
+            if return_extra:
+                extra['enPassant'] = (to[0] - self.in_turn, to[1])
+
+        time_dict["castleEnPassantCheck"] += time.clock() - time_start
+        time_start = time.clock()
+
+
+        is_checked, from_pos = is_in_check(self, self.in_turn)
+        time_dict["is_in_check1"] += time.clock() - time_start
+        if is_checked:
+            self.board = backup_board
+            return False, ("Illegal move due to check from pos " + str(from_pos))
+        if resets_draw_counter:
+            self.draw_counter = 0
+        else:
+            self.draw_counter += 1
+
+
+        self.turn_num += 1
+        self.in_turn = self.in_turn * -1
+
+        time_start = time.clock()
+        self.legal_moves = get_legal_moves(self, self.in_turn)
+        time_dict["get_legal_moves"] += time.clock() - time_start
+        time_start = time.clock()
+
+        checks, from_pos = is_in_check(self, self.in_turn)
+        time_dict["is_in_check2"] += time.clock() - time_start
+        if checks:
+            if not self.legal_moves:  # No legal moves for player + in check -> Checkmate
+                winner = self.in_turn * -1  # Already changed turn, so winner was player in last turn
+                winner_string = "white" if winner == 1 else "black"
+                msg += ", Checkmate. Winner is " + winner_string
+                self.winner = winner
+                self.is_in_progress = False
+            else:
+                msg += ", check from " + str(from_pos)
+        elif len(self.legal_moves) == 0:  # No legal moves + not in check -> Game is a draw. Weird fucking rule. Forced into a no move position -> draw apparently.. 
+            msg += ", no legal moves this turn. Game is a stalemate which means the game is a draw"
+            self.is_in_progress = False
+        if self.draw_counter >= 50:
+            msg += ", no captures or pawn moves for 50 turns. Game is a draw"
+            self.is_in_progress = False
+        self.last_move = move
+        # Feels ugly and inefficient
+        if frm == (0, 4):
+            self.legal_castles['(0, 2)'] = False
+            self.legal_castles['(0, 6)'] = False
+        elif frm == (0, 0):
+            self.legal_castles['(0, 2)'] = False
+        elif frm == (0, 7):
+            self.legal_castles['(0, 6)'] = False
+        elif frm == (7, 4):
+            self.legal_castles['(7, 2)'] = False
+            self.legal_castles['(7, 6)'] = False
+        elif frm == (7, 0):
+            self.legal_castles['(7, 2)'] = False
+        elif frm == (7, 7):
+            self.legal_castles['(7, 6)'] = False
+        if return_extra:
+            return True, {"msg": msg, "extra": extra}
+        return True, msg
+
+
+
         
         # # Good __eq__ for debugging below
         # if not np.array_equal(self.board, other.board):
@@ -568,111 +758,3 @@ class Chess:
         #     self.legal_moves = None
         #     self.last_move = None
         #     self.legal_castles = None
-
-    def move(self, move, debug=False, return_extra=False):
-        if return_extra:
-            extra = {'promote': move.promote, 'enPassant': None, 'castle': None}
-        frm = move.frm
-        to = move.to
-        # if to[0] == 7:
-        #     print("STUFF")
-        if not self.is_in_progress:
-            return False, "Game already concluded"
- 
-        legal, msg = _is_legal_move(self, move, self.in_turn) # TODO Chess_for_node crashes here Write tests
-        
-        # if to[0] == 7 and self.in_turn == 1:
-        #     print("legal: ", legal, ", msg: ", msg, ", move: ",  move, ", extra: ", extra)
-        if not legal:
-            return False, msg
-        # if to[0] == 7:
-            # print("STUFF05")
-        backup_board = copy.deepcopy(self.board)  # backup to rollback if move puts player in check
-
-        # if debug:
-        #     print("stuff42")
-
-        resets_draw_counter = True if self.board[to] != 0 or abs(self.board[frm]) == 1 else False  # I.e. if pawn move or capture move
-        self.board[to] = self.board[frm]
-        self.board[frm] = 0
-        # if debug:
-        #     print("stuff1")
-        if move.promote is not None and move.promote in [1, 2, 3, 4, 10]:
-            self.board[to] = move.promote * self.in_turn
-
-        if msg == "Legal castling move":  # Inelegant to check on msg string
-            if to == (0, 2):
-                self.board[0, 3] = 2
-                self.board[0, 0] = 0
-                if return_extra:
-                    extra['castle'] = [(0, 0), (0, 3)] 
-            elif to == (0, 6):
-                self.board[0, 5] = 2
-                self.board[0, 7] = 0
-                if return_extra:
-                    extra['castle'] = [(0, 7), (0, 5)] 
-            elif to == (7, 2):
-                self.board[7, 3] = -2
-                self.board[7, 0] = 0
-                if return_extra:
-                    extra['castle'] = [(7, 0), (7, 3)] 
-            elif to == (7, 6):
-                self.board[7, 5] = -2
-                self.board[7, 7] = 0
-                if return_extra:
-                    extra['castle'] = [(7, 7), (7, 5)]
-        if msg == "Legal En Passant":  # Again. Ugly shit
-            self.board[to[0] - self.in_turn, to[1]] = 0
-            is_capture_move = True
-            if return_extra:
-                extra['enPassant'] = (to[0] - self.in_turn, to[1])
-        # if debug:
-        #     print("2")
-        is_checked, from_pos = is_in_check(self, self.in_turn)
-        if is_checked:
-            self.board = backup_board
-            return False, ("Illegal move due to check from pos " + str(from_pos))
-        if resets_draw_counter:
-            self.draw_counter = 0
-        else:
-            self.draw_counter += 1
-
-        self.turn_num += 1
-        self.in_turn = self.in_turn * -1
-        self.legal_moves = get_legal_moves(self, self.in_turn)
-        checks, from_pos = is_in_check(self, self.in_turn)
-        if checks:
-            if not self.legal_moves:  # No legal moves for player + in check -> Checkmate
-                winner = self.in_turn * -1  # Already changed turn, so winner was player in last turn
-                winner_string = "white" if winner == 1 else "black"
-                msg += ", Checkmate. Winner is " + winner_string
-                self.winner = winner
-                self.is_in_progress = False
-            else:
-                msg += ", check from " + str(from_pos)
-        elif len(self.legal_moves) == 0:  # No legal moves + not in check -> Game is a draw. Weird fucking rule. Forced into a no move position -> draw apparently.. 
-            msg += ", no legal moves this turn. Game is a stalemate which means the game is a draw"
-            self.is_in_progress = False
-        if self.draw_counter >= 50:
-            msg += ", no captures or pawn moves for 50 turns. Game is a draw"
-            self.is_in_progress = False
-        self.last_move = move
-        # Feels ugly and inefficient
-        if frm == (0, 4):
-            self.legal_castles['(0, 2)'] = False
-            self.legal_castles['(0, 6)'] = False
-        elif frm == (0, 0):
-            self.legal_castles['(0, 2)'] = False
-        elif frm == (0, 7):
-            self.legal_castles['(0, 6)'] = False
-        elif frm == (7, 4):
-            self.legal_castles['(7, 2)'] = False
-            self.legal_castles['(7, 6)'] = False
-        elif frm == (7, 0):
-            self.legal_castles['(7, 2)'] = False
-        elif frm == (7, 7):
-            self.legal_castles['(7, 6)'] = False
-        if return_extra:
-            return True, {"msg": msg, "extra": extra}
-        return True, msg
-
