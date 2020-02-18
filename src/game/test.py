@@ -1402,7 +1402,72 @@ class TestChess(unittest.TestCase):
         success, extra = chess.move(Move((6, 1), (7, 0)), return_extra=True)
         # print(extra)
         self.assertFalse(success)
-        
+    
+    def test_move_checks_self_queen(self):
+        self.empty_chess.board[0, 0] = 100
+        self.empty_chess.board[1, 0] = 10
+        self.empty_chess.board[5, 0] = -10
+        move = Move((1, 0), (1, 1))
+        checks_self, _ = chess._move_checks_self(self.empty_chess, move, (0, 0), 1)
+        self.assertTrue(checks_self, "_move_checks_self, doesn't catch that a move exposes king to enemy queen")
+
+    def test_move_checks_self_rook(self):
+        self.empty_chess.board[0, 0] = 100
+        self.empty_chess.board[1, 0] = 10
+        self.empty_chess.board[5, 0] = -2
+        move = Move((1, 0), (3, 2))
+        checks_self, _ = chess._move_checks_self(self.empty_chess, move, (0, 0), 1)
+        self.assertTrue(checks_self, "_move_checks_self, doesn't catch that a move exposes king to enemy rook")
+
+    def test_move_checks_self_bishop(self):
+        self.empty_chess.board[0, 0] = 100
+        self.empty_chess.board[1, 1] = 10
+        self.empty_chess.board[5, 5] = -4
+        move = Move((1, 1), (3, 1))
+        checks_self, _ = chess._move_checks_self(self.empty_chess, move, (0, 0), 1)
+        self.assertTrue(checks_self, "_move_checks_self, doesn't catch that a move exposes king to enemy bishop")
+
+    def test_move_checks_self_fail_queen(self):
+        self.empty_chess.board[0, 0] = 100
+        self.empty_chess.board[1, 0] = 10
+        self.empty_chess.board[5, 0] = -10
+        move = Move((1, 0), (4, 0))
+        checks_self, _ = chess._move_checks_self(self.empty_chess, move, (0, 0), 1)
+        self.assertFalse(checks_self, "_move_checks_self, falsely returns True")
+
+    def test_move_checks_self_fail_bishop(self):
+        self.empty_chess.board[0, 0] = 100
+        self.empty_chess.board[1, 1] = 10
+        self.empty_chess.board[5, 5] = -4
+        move = Move((1, 1), (3, 3))
+        checks_self, _ = chess._move_checks_self(self.empty_chess, move, (0, 0), 1)
+        self.assertFalse(checks_self, "_move_checks_self, falsely returns True")
+
+    def test_move_checks_self_rook_black(self):
+        self.empty_chess.board[4, 4] = -100
+        self.empty_chess.board[3, 4] = -10
+        self.empty_chess.board[0, 4] = 2
+        move = Move((3, 4), (3, 2))
+        checks_self, _ = chess._move_checks_self(self.empty_chess, move, (4, 4), -1)
+        self.assertTrue(checks_self, "_move_checks_self, doesn't catch that a move exposes black king to white rook")
+
+    def test_move_checks_self_bishop_black(self):
+        self.empty_chess.board[6, 6] = -100
+        self.empty_chess.board[3, 3] = -10
+        self.empty_chess.board[1, 1] = 4
+        move = Move((3, 3), (2, 4))
+        checks_self, _ = chess._move_checks_self(self.empty_chess, move, (6, 6), -1)
+        self.assertTrue(checks_self, "_move_checks_self, doesn't catch that a move exposes king to enemy bishop")   
+
+    def test_move_checks_self_fail_black_rook(self):
+        self.empty_chess.board[6, 6] = -100
+        self.empty_chess.board[5, 6] = -10
+        self.empty_chess.board[2, 6] = -4
+        move = Move((5, 6), (3, 6))
+        checks_self, _ = chess._move_checks_self(self.empty_chess, move, (6, 6), -1)
+        self.assertFalse(checks_self, "_move_checks_self, falsely returns True")
+
+
         # msg = extra["msg"]
         # move_info = extra["extra"]
         # print(msg)

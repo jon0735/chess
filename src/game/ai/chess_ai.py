@@ -1,7 +1,9 @@
 import numpy as np
 import copy
 import time
+from chess.chess import Chess
 from ai.tree import Node
+# from chess.chess_util import efficient_copy
 
 # Most of this could be implemented more generally, instead of being hardcoded for chess. Consider doing this (If I suddenly have a bunch of free time (lol))
 
@@ -68,7 +70,8 @@ def alpha_beta_prune(node, depth, maximizing, alpha=-float('inf'), beta=float('i
     chess = node.content["chess"]
     for move in chess.legal_moves:
         start_copy = time.clock()
-        chess_copy = copy.deepcopy(chess)
+        # chess_copy = copy.deepcopy(chess)
+        chess_copy = chess._efficient_copy()
         time_dict["copy"] += time.clock() - start_copy
         start_move = time.clock()
         chess_copy.move(move)
@@ -97,7 +100,29 @@ def alpha_beta_prune(node, depth, maximizing, alpha=-float('inf'), beta=float('i
     # end_other = time.clock()
     # time_dict["other"] += end_other - start_other - recursion_time
     return value
-    
+
+# def efficient_copy(chess):
+#     chess_dict = {"board": copy.deepcopy(chess.board),
+#                   "in_turn": chess.in_turn,
+#                   "turn_num": chess.turn_num,
+#                   "is_in_progress": chess.is_in_progress,
+#                   "draw_counter": chess.draw_counter,
+#                   "winner": chess.winner,
+#                   "last_move": chess.last_move,
+#                   "legal_castles": copy.deepcopy(chess.legal_castles),
+#                   "legal_moves": []}
+#     return Chess(chess_dict=chess_dict)
+
+# self.board = chess_util.get_start_board()
+#             self.in_turn = 1
+#             self.turn_num = 1
+#             self.is_in_progress = True
+#             self.draw_counter = 0
+#             self.winner = None
+#             self.last_move = None
+#             self.legal_castles = {'(0, 2)' : True, '(0, 6)' : True, '(7, 2)' : True, '(7, 6)' : True}  # String keys for easier node communication
+#             self.legal_moves = get_legal_moves(self, self.in_turn)
+
 def count_tree_size(node, count_dict, level):
     count_dict["count"] += 1
     if not node.children: # children is empty -> leaf node

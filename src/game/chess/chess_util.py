@@ -77,3 +77,4 @@ def move_list_to_string(move_list):
         res += str(move)
     res += "]"
     return res
+

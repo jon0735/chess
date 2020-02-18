@@ -234,7 +234,7 @@ def _get_legal_pawn_moves(board, pos, moves=None):
         # moves.append(Move(pos, (row + player, column)))
         legal_tos.append((row + player, column))
         # middle = True
-        if (player == 1 and row == 1) or (player == -1 and row == 6):
+        if (row == 1 and player == 1) or ( row == 6 and player == -1):
             if board[row + 2 * player, column] == 0:
                 legal_tos.append((row + 2 * player, column))
 
@@ -250,7 +250,7 @@ def _get_legal_pawn_moves(board, pos, moves=None):
         legal_tos.append(right_attack)
     
     # Handle promotion
-    if (row == 1 and player == -1) or (row == 6 and player == 1):
+    if needs_promotion:
         # temp_moves = []
         for to in legal_tos:
             # to = move.to
@@ -296,8 +296,10 @@ def _get_legal_knight_moves(board, pos, moves=None):
     player = 1 if board[pos] > 0 else -1
     pos_list = [(1, 2), (1, -2), (2, 1), (2, -1), (-1, 2), (-1, -2), (-2, 1), (-2, -1)]
     # moves = []
-    for p in pos_list:
-        to = (p[0] + pos[0], p[1] + pos[1])
+    row = pos[0]
+    column = pos[1]
+    for r, c in pos_list:
+        to = (row + r, column + c)
         if not _is_outside_board(to) and board[to] * player <= 0:
             moves.append(Move(pos, to))
     return moves
@@ -308,10 +310,12 @@ def _get_legal_bishop_moves(board, pos, moves=None):
     directions = [(1, 1), (-1, 1), (1, -1), (-1, -1)]
     if moves is None:
         moves = []
-    for d in directions:
+    row = pos[0]
+    column = pos[1]
+    for r, c in directions:
         dist = 1
         while True:
-            p = (pos[0] + dist * d[0], pos[1] + dist * d[1])
+            p = (row + dist * r, column + dist * c)
             dist = dist + 1
             if _is_outside_board(p):
                 break
@@ -341,7 +345,6 @@ def _get_legal_king_moves(board, pos, moves=None):
         for j in [-1, 0, 1]:
             if i == 0 and j == 0:
                 continue
-            # TODO Handle castling
             p = (pos[0] + i, pos[1] + j)
             if _is_outside_board(p):
                 continue
@@ -350,50 +353,81 @@ def _get_legal_king_moves(board, pos, moves=None):
     return moves
 
 
-def get_legal_moves(chess, player):
+# TODO improve: 75% generate, 18% validate (probably can't improve this much)
+def get_legal_moves(chess, player, time_dict=None):
+    # if time_dict is None:
+    #     time_dict = {"generate1": 0,
+    #                  "generate2": 0,
+    #                  "generate3": 0,
+    #                  "generate4": 0,
+    #                  "generate5": 0,
+    #                  "generate6": 0,
+    #                  "copy": 0,
+    #                  "validate": 0,
+    #                  "special": 0}
     board = chess.board
     moves = []
     king_pos = None
+    # time_start = time.clock()
     for i, row in enumerate(board):
         for j, piece in enumerate(row):
             if player * piece > 0:
                 piece_type = piece * player
                 if piece_type == 1:
+                    # time_start = time.clock()
                     _get_legal_pawn_moves(board, (i, j), moves=moves)
+                    # time_dict["generate1"] += time.clock() - time_start
                 elif piece_type == 2:
+                    # time_start = time.clock()
                     _get_legal_rook_moves(board, (i, j), moves=moves)
+                    # time_dict["generate2"] += time.clock() - time_start
                 elif piece_type == 3:
+                    # time_start = time.clock()
                     _get_legal_knight_moves(board, (i, j), moves=moves)
+                    # time_dict["generate3"] += time.clock() - time_start
                 elif piece_type == 4:
+                    # time_start = time.clock()
                     _get_legal_bishop_moves(board, (i, j), moves=moves)
+                    # time_dict["generate4"] += time.clock() - time_start
                 elif piece_type == 10:
+                    # time_start = time.clock()
                     _get_legal_queen_moves(board, (i, j), moves=moves)
+                    # time_dict["generate5"] += time.clock() - time_start
                 elif piece_type == 100:
                     king_pos = (i, j)
+                    # time_start = time.clock()
                     _get_legal_king_moves(board, (i, j), moves=moves)
+                    # time_dict["generate6"] += time.clock() - time_start
                 else:
                     raise ValueError("Is_legal_move error: piece_type: ", piece_type, ", not recognised")
+    # time_dict["generate"] += time.clock() - time_start
     legal_moves = []
-    testing_chess = copy.deepcopy(chess)
+    # testing_chess = copy.deepcopy(chess)
+    # time_start = time.clock()
+    testing_chess = chess._efficient_copy()
+    # time_dict["copy"] += time.clock() - time_start
     # testing_board = copy.deepcopy(board)
     # if king_pos is None:
     #     king_pos = _find_king(testing_chess.board, player)
+    # time_start = time.clock()
     for move in moves:
-        to = move.to
-        frm = move.frm
-        old_to = board[to]
-        old_frm = board[frm]
-        testing_chess.board[to] = old_frm
-        testing_chess.board[frm] = 0
-        if old_frm * player == 100:
+        if board[move.frm] * player == 100:
+            to = move.to
+            frm = move.frm
+            old_to = board[to]
+            old_frm = board[frm]
+            testing_chess.board[to] = old_frm
+            testing_chess.board[frm] = 0
             self_in_check, _ = is_in_check(testing_chess, player, king_pos=to)
+            testing_chess.board[frm] = old_frm
+            testing_chess.board[to] = old_to
         else:
-            self_in_check, _ = is_in_check(testing_chess, player, king_pos=king_pos)
-        # self_in_check, _ = is_in_check(testing_board, player)
+            self_in_check, _ = _move_checks_self(chess, move, king_pos, player)
         if not self_in_check:
             legal_moves.append(move)
-        testing_chess.board[frm] = old_frm
-        testing_chess.board[to] = old_to
+
+    # time_dict["validate"] += time.clock() - time_start
+    # time_start = time.clock()
     # Castling handling
     if player == 1 and board[0, 4] == 100:
         left_castle = Move((0, 4), (0, 2))
@@ -426,7 +460,67 @@ def get_legal_moves(chess, player):
                 legal_moves.append(Move((r, c-1), (r-1, c)))
             if c + 1 < 8 and board[r, c + 1] == -1:
                 legal_moves.append(Move((r, c+1), (r-1, c)))
+    # time_dict["special"] += time.clock() - time_start
+    
     return legal_moves
+
+# Assumes move is otherwise legal. Assumes king is not the piece being moved
+def _move_checks_self(chess, move, king_pos, player):
+    # if print_stuff:
+    #     chess_util.print_board(chess.board)
+    #     print(move, king_pos, player)
+    if king_pos is None:  # Assumes king_pos in None due to testing scenarion, where king does not exist on board
+        return False, None
+    frm = move.frm
+    to = move.to
+    r_frm_dist = frm[0] - king_pos[0]
+    c_frm_dist = frm[1] - king_pos[1]
+    # if (abs(r_frm_dist) != abs(c_frm_dist) and r_frm_dist != 0 and c_frm_dist != 0): # From pos is not on any kind of line with king -> move cannot expose king to anything
+    #     return False
+    if abs(r_frm_dist) == abs(c_frm_dist):  # Diagonal line from 'frm' pos to king. Need to check for bishops and queens at this line
+        enemy_checker = -4 * player
+        r = 1 if r_frm_dist > 0 else -1  # assumes r_frm_dist != 0 (implies r_frm_dist == c_frm_dist == 0, meaning move goes to own king)
+        c = 1 if c_frm_dist > 0 else -1  # assumes c_frm_dist != 0
+        frm_direction = (r, c)
+        # if print_stuff:
+        #     print("Diagonal: ", frm_direction)
+    elif r_frm_dist == 0: # Horizontal line -> check for rook or queen
+        enemy_checker = -2 * player
+        c = 1 if c_frm_dist > 0 else -1
+        frm_direction = (0, c)
+        # if print_stuff:
+            # print("Horizontal: ", frm_direction)
+    elif c_frm_dist == 0: # Vertical line -> check for rook or queen
+        enemy_checker = -2 * player
+        r = 1 if r_frm_dist > 0 else -1
+        frm_direction = (r, 0)
+        # if print_stuff:
+            # print("Vertical: ", frm_direction)
+    else:  # No legal line the piece could have blocked. Move cannot put self in check
+        # if print_stuff:
+            # print("Returning false due to no line")
+        return False, None
+    dist = 0
+    while True:
+        dist += 1
+        pos = (frm[0] + dist * frm_direction[0], frm[1] + dist * frm_direction[1])  # Only need to check on the other side of the old 'frm' pos
+        # if print_stuff:
+            # print("dist: ", dist)
+            # print("pos being checked: ", pos, "to: ", to)
+            # print("to == pos", to == pos)
+        if _is_outside_board(pos) or pos == to:  # Outside board, or direction is still blocked by same piece
+            break
+        piece = chess.board[pos]
+        # if piece * player > 0:  # other own piece blocking
+        #     break
+        if piece == 0:  # empty square. Continue loop, look at next square in direction
+            continue
+        if piece == -10 * player or piece == enemy_checker:
+            return True, pos
+        else:  # Square inside board, not empty, and not occupied by a piece which checks king -> move cannot put self in check
+            break
+
+    return False, None
 
 
 def _find_king(board, player):
@@ -498,12 +592,6 @@ def is_in_check(chess, player, king_pos=None):
     #         if piece * player < 0:  # This means the piece is the opponents.
     #             promote_arg = 10 if (abs(piece) == 1 and i + 2.5 * player == 3.5) else None  # Checks if promote arg needs to be included in Move. i + 2.5 * player == 3.5 means that the pawn is at the row just before the final
     #             legal, msg = _is_legal_move(chess, Move((i, j), king_pos, promote=promote_arg), player * -1)
-    #             # if i == 6 and j == 5:
-    #             #     # chess_util.print_board(chess.board)
-    #             #     print(i - 2.5 * player)
-    #             #     print(legal)
-    #             #     print(msg)
-
     #             if legal:
     #                 return True, (i, j)
     # return False, None
@@ -580,17 +668,18 @@ class Chess:
             and self.legal_castles == other.legal_castles \
             and np.array_equal(self.legal_moves, other.legal_moves) \
 
-    def move(self, move, debug=False, return_extra=False, time_dict=None):
-        if time_dict is None:
-            time_dict = {"start": 0, 
-                        "is_legal": 0, 
-                        "copy": 0, 
-                        "mid1": 0, 
-                        "castleEnPassantCheck": 0, 
-                        "is_in_check1": 0, 
-                        "get_legal_moves": 0, 
-                        "is_in_check2": 0}
-        time_start = time.clock()
+    # TODO improve: 65% get_legal_moves, 30% is_in_check
+    def move(self, move, debug=False, return_extra=False):
+        # if time_dict is None:
+        #     time_dict = {"start": 0, 
+        #                 "is_legal": 0, 
+        #                 "copy": 0, 
+        #                 "mid1": 0, 
+        #                 "castleEnPassantCheck": 0, 
+        #                 "is_in_check1": 0, 
+        #                 "get_legal_moves": 0, 
+        #                 "is_in_check2": 0}
+        # time_start = time.clock()
         if return_extra:
             extra = {'promote': move.promote, 'enPassant': None, 'castle': None}
         frm = move.frm
@@ -598,19 +687,19 @@ class Chess:
 
         if not self.is_in_progress:
             return False, "Game already concluded"
-        time_dict["start"] += time.clock() - time_start
-        time_start = time.clock()
+        # time_dict["start"] += time.clock() - time_start
+        # time_start = time.clock()
         legal, msg = _is_legal_move(self, move, self.in_turn) 
-        time_dict["is_legal"] += time.clock() - time_start
+        # time_dict["is_legal"] += time.clock() - time_start
         
         if not legal:
             return False, msg
 
-        time_start = time.clock()
+        # time_start = time.clock()
         backup_board = copy.deepcopy(self.board)  # backup to rollback if move puts player in check
-        time_dict["copy"] += time.clock() - time_start
+        # time_dict["copy"] += time.clock() - time_start
 
-        time_start = time.clock()
+        # time_start = time.clock()
         resets_draw_counter = True if self.board[to] != 0 or abs(self.board[frm]) == 1 else False  # I.e. if pawn move or capture move
         self.board[to] = self.board[frm]
         self.board[frm] = 0
@@ -618,8 +707,8 @@ class Chess:
         if move.promote is not None and move.promote in [1, 2, 3, 4, 10]:
             self.board[to] = move.promote * self.in_turn
 
-        time_dict["mid1"] += time.clock() - time_start
-        time_start = time.clock()
+        # time_dict["mid1"] += time.clock() - time_start
+        # time_start = time.clock()
 
         if msg == "Legal castling move":  # Inelegant to check on msg string
             if to == (0, 2):
@@ -649,12 +738,12 @@ class Chess:
             if return_extra:
                 extra['enPassant'] = (to[0] - self.in_turn, to[1])
 
-        time_dict["castleEnPassantCheck"] += time.clock() - time_start
-        time_start = time.clock()
+        # time_dict["castleEnPassantCheck"] += time.clock() - time_start
+        # time_start = time.clock()
 
 
         is_checked, from_pos = is_in_check(self, self.in_turn)
-        time_dict["is_in_check1"] += time.clock() - time_start
+        # time_dict["is_in_check1"] += time.clock() - time_start
         if is_checked:
             self.board = backup_board
             return False, ("Illegal move due to check from pos " + str(from_pos))
@@ -667,13 +756,13 @@ class Chess:
         self.turn_num += 1
         self.in_turn = self.in_turn * -1
 
-        time_start = time.clock()
+        # time_start = time.clock()
         self.legal_moves = get_legal_moves(self, self.in_turn)
-        time_dict["get_legal_moves"] += time.clock() - time_start
-        time_start = time.clock()
+        # time_dict["get_legal_moves"] += time.clock() - time_start
+        # time_start = time.clock()
 
         checks, from_pos = is_in_check(self, self.in_turn)
-        time_dict["is_in_check2"] += time.clock() - time_start
+        # time_dict["is_in_check2"] += time.clock() - time_start
         if checks:
             if not self.legal_moves:  # No legal moves for player + in check -> Checkmate
                 winner = self.in_turn * -1  # Already changed turn, so winner was player in last turn
@@ -709,7 +798,17 @@ class Chess:
             return True, {"msg": msg, "extra": extra}
         return True, msg
 
-
+    def _efficient_copy(self):
+        chess_dict = {"board": copy.deepcopy(self.board),
+                    "in_turn": self.in_turn,
+                    "turn_num": self.turn_num,
+                    "is_in_progress": self.is_in_progress,
+                    "draw_counter": self.draw_counter,
+                    "winner": self.winner,
+                    "last_move": self.last_move,
+                    "legal_castles": copy.deepcopy(self.legal_castles),
+                    "legal_moves": []}
+        return Chess(chess_dict=chess_dict)
 
         
         # # Good __eq__ for debugging below
