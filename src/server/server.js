@@ -6,6 +6,7 @@ var spawn = require('child_process').spawn;
 var activeGames = new Map();
 var activeConnections = new Map();
 const clientPath = path.join(__dirname, '..', 'client');
+// const pythonScriptPath = path.join(__dirname, '..', 'game', 'test.py');
 const pythonScriptPath = path.join(__dirname, '..', 'game', 'chess', 'chess_for_node.py');
 
 // Calls python script based on the requested client move
@@ -85,8 +86,10 @@ function createNewGame(gameID, connID, humanPlayer){
     var process = spawn('python', [pythonScriptPath,
         gameID, // Not presently being used
         'create']);
-
+    console.log("After spawn new game");
+    console.log(pythonScriptPath);
     process.stdout.on('data', (data) => { handleScriptData(data, gameID, connID, humanPlayer); });
+    console.log("After on settings");
 }
 
 function loadGame(gameID, connID){
@@ -117,6 +120,7 @@ function loadGame(gameID, connID){
 }
 
 function handleScriptData(data, gameID, connID, humanPlayer){
+    console.log("Handlescriptdata");
     var dataObj;
     try {
         dataObj = JSON.parse(data);

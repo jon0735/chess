@@ -1,3 +1,5 @@
+
+# print("MEH")
 import sys
 import os
 import json
@@ -104,11 +106,19 @@ def makeAiMove(id, chess_json):
         # string += "unpacked"
         # TODO Handle 
         # move = random.choice(chess.legal_moves) # TODO Ai stuff
-        move = choose_move_ab(chess, depth=3)
+        move, value = choose_move_ab(chess, depth=3)
         # string += "\nrandomMove"
         string = str(move)
 
         success, extra = chess.move(move, return_extra=True)
+
+        if isinstance(extra, str):
+            return {"status" : 500, "chess" : "None", 
+                    "id" : id, 
+                    "move": None, 
+                    "msg" : "Extra returned as string -> error in move " + str(move) + str(success) + extra}
+
+
         msg = extra["msg"]
         move_info = extra["extra"]
         status = 210 if success else 400
@@ -123,7 +133,7 @@ def makeAiMove(id, chess_json):
         move_info['rTo'] = move.to[0]
         move_info['cTo'] = move.to[1]
         # string += "\nJust before return"
-        result = {"status" : status, "chess" : chess_result, "id" : id, "move": move_info, "msg" : msg}
+        result = {"status" : status, "chess" : chess_result, "id" : id, "move": move_info, "msg" : msg + ", with value: " + str(value)}
         if not chess.is_in_progress:
             result["status"] = 203
             result["winner"] = chess.winner
@@ -146,29 +156,32 @@ def getNewGame(id):  # Consider just returning a string instead of all these ope
 
 
 if __name__ == '__main__' and (len(sys.argv) > 1):
-    client_id = sys.argv[1]
-    func = sys.argv[2]
-    if func == 'create':
-        result = getNewGame(client_id)
-        print(json.dumps(result))
-    elif func == 'move':
-        promote_arg = int(sys.argv[9])
-        # if promote_arg != 0:
-        #     print(move)
-        promote = None if promote_arg == 0 else promote_arg
-        move = Move((int(sys.argv[3]), int(sys.argv[4])), (int(sys.argv[5]), int(sys.argv[6])), promote=promote)
-        # if promote is not None:
-        #     print(move)
-        result = makeMove(client_id, sys.argv[7], move=move)
-        print(json.dumps(result))
-    elif func == 'ai':
-        result = makeAiMove(client_id, sys.argv[3])
-        if result['status'] == 200:
-            result['status'] = 210
-        print(json.dumps(result))
-    else:
-        print(json.dumps({"status" : 500, "chess" : "None", "id" : id, "msg" : "Function " + func + ", not recognised"}))
-
+    
+    try:
+        client_id = sys.argv[1]
+        func = sys.argv[2]
+        if func == 'create':
+            result = getNewGame(client_id)
+            print(json.dumps(result))
+        elif func == 'move':
+            promote_arg = int(sys.argv[9])
+            # if promote_arg != 0:
+            #     print(move)
+            promote = None if promote_arg == 0 else promote_arg
+            move = Move((int(sys.argv[3]), int(sys.argv[4])), (int(sys.argv[5]), int(sys.argv[6])), promote=promote)
+            # if promote is not None:
+            #     print(move)
+            result = makeMove(client_id, sys.argv[7], move=move)
+            print(json.dumps(result))
+        elif func == 'ai':
+            result = makeAiMove(client_id, sys.argv[3])
+            if result['status'] == 200:
+                result['status'] = 210
+            print(json.dumps(result))
+        else:
+            print(json.dumps({"status" : 500, "chess" : "None", "id" : id, "msg" : "Function " + func + ", not recognised"}))
+    except Exception as e:
+        print(json.dumps({"status" : 500, "chess" : "None", "id" : id, "msg" : e}))
 
 # TODO: Make sure in_turn stuff is checked properly
 

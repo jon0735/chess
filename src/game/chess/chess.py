@@ -402,6 +402,7 @@ def get_legal_moves(chess, player, time_dict=None):
                     raise ValueError("Is_legal_move error: piece_type: ", piece_type, ", not recognised")
     # time_dict["generate"] += time.clock() - time_start
     legal_moves = []
+    in_check = is_in_check(chess, player, king_pos)
     # testing_chess = copy.deepcopy(chess)
     # time_start = time.clock()
     testing_chess = chess._efficient_copy()
@@ -419,6 +420,16 @@ def get_legal_moves(chess, player, time_dict=None):
             testing_chess.board[to] = old_frm
             testing_chess.board[frm] = 0
             self_in_check, _ = is_in_check(testing_chess, player, king_pos=to)
+            testing_chess.board[frm] = old_frm
+            testing_chess.board[to] = old_to
+        elif in_check:
+            to = move.to
+            frm = move.frm
+            old_to = board[to]
+            old_frm = board[frm]
+            testing_chess.board[to] = old_frm
+            testing_chess.board[frm] = 0
+            self_in_check, _ = is_in_check(testing_chess, player, king_pos=king_pos)
             testing_chess.board[frm] = old_frm
             testing_chess.board[to] = old_to
         else:

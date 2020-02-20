@@ -1467,6 +1467,33 @@ class TestChess(unittest.TestCase):
         checks_self, _ = chess._move_checks_self(self.empty_chess, move, (6, 6), -1)
         self.assertFalse(checks_self, "_move_checks_self, falsely returns True")
 
+    def test_must_remove_check(self):
+        self.empty_chess.board[7, 1] = -100
+        self.empty_chess.board[6, 5] = -1
+        self.empty_chess.board[0, 0] = 100
+        self.empty_chess.board[1, 2] = 10
+        success, msg = self.empty_chess.move(Move((1, 2), (1, 1)))
+        self.assertTrue(success)
+        move = Move((6, 5), (5, 5))
+        self.assertFalse(move in self.empty_chess.legal_moves)
+
+
+        # success, msg = self.empty_chess.move(Move((6, 5), (5, 5)))
+        # self.assertFalse(success, "Move allowed even tho in check, with msg: " + msg)
+        # print(msg)
+
+    def test_must_remove_check2(self):
+        self.empty_chess.board[7, 4] = -100
+        self.empty_chess.board[3, 0] = -1
+        self.empty_chess.board[0, 4] = 100
+        self.empty_chess.board[0, 5] = 4
+        success, msg = self.empty_chess.move(Move((0, 5), (4, 1)))
+        self.assertTrue(success)
+        move = Move((3, 0), (2, 0))
+        # success, msg = self.empty_chess.move(Move((3, 0), (2, 0)))
+        self.assertFalse(move in self.empty_chess.legal_moves)
+        # self.assertFalse(success, "Move allowed even tho in check, with msg: " + msg)      
+        
 
         # msg = extra["msg"]
         # move_info = extra["extra"]
@@ -1511,7 +1538,7 @@ class TestChessAI(unittest.TestCase):
 
     def test_move_is_returned(self):
         chess = Chess()
-        move = chess_ai.choose_move_ab(chess, depth=2)
+        move, value = chess_ai.choose_move_ab(chess, depth=2)
         self.assertIsNotNone(move, "Chess ai retuned None move on start chess")
 
     def test_sum_eval_function(self):
@@ -1541,3 +1568,10 @@ if __name__ == '__main__':  # Does not work from PyCharm python console. Use ter
     # print(u'\u2654')
 
 # TODO Client side castle and en passant handling
+
+
+# Move failed (Error). Msg: Parsing input caused exception. Server incompetently programmed. error: string indices must be integers, Trace: Traceback (most recent call last):
+#   File "C:\Users\Jon\Documents\Git\chess\src\game\chess\chess_for_node.py", line 112, in makeAiMove
+#     msg = extra["msg"]
+# TypeError: string indices must be integers
+# , move = {'frm': (3, 0), 'to': (2, 0), 'promote': None}

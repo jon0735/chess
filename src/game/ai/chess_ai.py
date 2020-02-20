@@ -1,7 +1,10 @@
 import numpy as np
 import copy
 import time
-from chess.chess import Chess
+import sys
+import random
+# print(sys.path)
+# from chess.chess import Chess
 from ai.tree import Node
 # from chess.chess_util import efficient_copy
 
@@ -27,7 +30,7 @@ def nn_eval(chess):
 #Alpha beta choice
 # TODO: More efficient copy (Doesn't actually seem to be that much of a problem). No need to copy legal_moves
 # TODO: proper evaluation function argument structure/usage
-def choose_move_ab(chess, depth=4, evaluation_function=None, return_tree=False):
+def choose_move_ab(chess, depth=4, evaluation_function=None, return_tree=False, randomize=True):
     assert depth > 0
     legal_moves = chess.legal_moves
     if not legal_moves or not chess.is_in_progress:  # If empty list of moves, or game having ended (should always be the same situation except testing scenarios)
@@ -41,12 +44,14 @@ def choose_move_ab(chess, depth=4, evaluation_function=None, return_tree=False):
     # print("Root node val: ", val)
     move = None
     # print("Children: ", len(root.children))
+    if randomize:
+        random.shuffle(root.children)
     for child in root.children:
         # print("child val: ", child.value)
         if child.value == val:
             if return_tree:
                 return child.content["move"], root, time_dict
-            return child.content["move"]
+            return child.content["move"], child.value
     raise Exception("No children with the expected value")
     
 
