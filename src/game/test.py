@@ -1559,6 +1559,26 @@ class TestChessAI(unittest.TestCase):
         chess.move(Move((6, 0), (7, 0)))
         self.assertEqual(chess_ai.sum_eval(chess_content), 100)
 
+    def test_chess_to_nn_input(self):
+        chess = Chess()
+        # print(chess_util.print_board(chess.board))
+        nn_input = chess_ai.chess_to_nn_input(chess)
+        self.assertEqual(np.sum(nn_input), 1, "nn_input does not have a sum of 1 (all black and white pieces cancel each other, in_turn=1)\n" + str(nn_input))
+
+    def test_nn_eval_fun(self):
+        chess = Chess()
+        chess_content = {"move": None, "chess": chess}
+        x = chess_ai.chess_to_nn_input(chess)
+        nn = NN()
+        nn.init_net(input_size=len(x), output_size=1, hidden_size=200, number_of_hidden=3)
+        val = chess_ai.nn_eval(chess_content, nn=nn)
+        self.assertLessEqual(val, 1, "NN eval returned val greater than 1")
+        self.assertGreaterEqual(val, -1, "NN eval returned val less than -1")
+        # print(val)
+
+
+    
+
 
 if __name__ == '__main__':  # Does not work from PyCharm python console. Use terminal
     unittest.main()

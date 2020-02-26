@@ -3,10 +3,12 @@ import nn_util
 
 
 class NeuralNet:
-    def __init__(self):
-        self.W = []
-        self.b = []
-        self.depth = 0
+    def __init__(self, W=None, b=None):
+        if W is None: 
+            self.W = []
+        if b is None:
+            self.b = []
+        self.depth = len(self.b)
 
     def init_net(self, input_size=0, output_size=0, hidden_size=0, number_of_hidden=0):
         # print("\n\n")
