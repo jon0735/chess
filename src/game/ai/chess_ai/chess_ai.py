@@ -87,13 +87,6 @@ def choose_move_ab(chess, depth=4, eval_fun=sum_eval, nn=None, return_tree=False
     raise Exception("No children with the expected value")
 
 
-# def choose_move_ab_nn(chess, depth=3, return_tree=False, nn=None):
-#     if nn is None:
-#         #TODO load/create nn
-#         pass
-#     pass
-
-
 # TODO count branching factor and total number of nodes. Consider sorting moves based on heuristic
 # TODO: Optimize (e.g. evaluate better looking branches first, iterative deepening)
 # TODO: Consider: current approach does not lend itself easily to reusing tree next time. Only some branches are created, with no knowledge of which moves have corresponding nodes
