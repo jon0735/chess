@@ -1,0 +1,1 @@
+{"count": 204, "result_counts": [15, 176, 16], "lr": 8e-05, "lr_min": 1e-06, "rand": 0.995, "rand_min": 0.2}

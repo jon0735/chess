@@ -3,12 +3,12 @@ import copy
 import time
 import sys
 import random
+from pathlib import Path
 # print(sys.path)
 # from chess.chess import Chess
-from pathlib import Path
-sys.path.append("..")
-from ai.tree import Node
-from ai.neural_net import NeuralNet
+# sys.path.append("..")
+from game.ai.chess_ai.tree import Node
+from game.ai.nn.neural_net import NeuralNet
 # from chess.chess_util import efficient_copy
 
 # Most of this could be implemented more generally, instead of being hardcoded for chess. Consider doing this (If I suddenly have a bunch of free time (lol))
@@ -168,6 +168,6 @@ def load_nn(file_name):
     x = np.load(str(path) + "/saved_nns/" + file_name + ".npz")
     return NeuralNet(W=x["W"], b=x["b"])
 
-
+# C:\Users\Jon\Documents\Uni\Git\chess\src\game\ai\nn\saved_nns
 # TODO refactor big time. Especially default args in regards to sum_eval, nn_eval and nn
 # TODO monte carlo

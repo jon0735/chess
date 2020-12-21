@@ -3,20 +3,20 @@ import sys
 # sys.path.append("..")
 
 
-from chess.chess import Chess
-from chess.chess import Move
-from naught_cross.naught_cross import NaughtCross
-from ai.naught_ai import NaughtAI
-from ai.naught_tree import Node as NaughtNode
-from ai.neural_net import NeuralNet as NN
+from game.chess.chess import Chess
+from game.chess.chess import Move
+from game.naught_cross.naught_cross import NaughtCross
+from game.ai.naught_ai.naught_ai import NaughtAI
+from game.ai.naught_ai.naught_tree import Node as NaughtNode
+from game.ai.nn.neural_net import NeuralNet as NN
 
-import naught_cross.naught_util as naught_util
-import ai.nn_util as nn_util
-import ai.ai_strats as ai_strats
-import ai.chess_ai as chess_ai
-import chess.chess_util as chess_util
-import chess.chess as chess
-import chess.chess_for_node as chess_for_node
+import game.naught_cross.naught_util as naught_util
+import game.ai.nn.nn_util as nn_util
+import game.ai.naught_ai.ai_strats as ai_strats
+import game.ai.chess_ai.chess_ai as chess_ai
+import game.chess.chess_util as chess_util
+import game.chess.chess as chess
+import game.chess.chess_for_node as chess_for_node
 
 import copy
 import unittest

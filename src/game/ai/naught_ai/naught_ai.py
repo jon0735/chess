@@ -1,11 +1,11 @@
 import copy
-
-
-import naught_util
-import ai_strats
 import numpy as np
-from neural_net import NeuralNet
-from naught_tree import Node
+
+
+import game.naught_cross.naught_util as naught_util
+import game.ai.naught_ai.ai_strats as ai_strats
+from game.ai.nn.neural_net import NeuralNet
+from game.ai.naught_ai.naught_tree import Node
 
 
 class NaughtAI:

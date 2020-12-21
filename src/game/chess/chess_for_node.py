@@ -7,20 +7,31 @@ import numpy as np
 import traceback
 import random
 
+# from game.chess.chess import Chess, Move
+# from game.ai.chess_ai.chess_ai import choose_move_ab, latest_nn_move
+
 try:
-    if __name__ == '__main__': # hacky shit to allow both testing via game/test.py and to call it as a script via server/server.js
-        from chess import Chess
-        from chess import Move
-        sys.path.insert(1, os.path.join(sys.path[0], '..'))
-        from ai.chess_ai import choose_move_ab, latest_nn_move
-        # import studd
-    else:
-        from chess.chess import Chess
-        from chess.chess import Move
+    from game.chess.chess import Chess, Move
+    from game.ai.chess_ai.chess_ai import choose_move_ab, latest_nn_move
 except Exception as e:
     trace = traceback.format_exc()
     print(json.dumps({"status": 500, "msg": "Import error. Error: " + str(e) + ", trace: " + str(trace) + "\nPath: " + str(sys.path)}))
     sys.exit()
+
+# try:
+#     if __name__ == '__main__': # hacky shit to allow both testing via game/test.py and to call it as a script via server/server.js
+#         from chess import Chess
+#         from chess import Move
+#         sys.path.insert(1, os.path.join(sys.path[0], '..'))
+#         from ai.chess_ai import choose_move_ab, latest_nn_move
+#         # import studd
+#     else:
+#         from chess.chess import Chess
+#         from chess.chess import Move
+# except Exception as e:
+#     trace = traceback.format_exc()
+#     print(json.dumps({"status": 500, "msg": "Import error. Error: " + str(e) + ", trace: " + str(trace) + "\nPath: " + str(sys.path)}))
+#     sys.exit()
 
 start_chess = '{"board": [[2, 3, 4, 10, 100, 4, 3, 2], [1, 1, 1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [-1, -1, -1, -1, -1, -1, -1, -1], [-2, -3, -4, -10, -100, -4, -3, -2]], "in_turn": 1, "turn_num": 1, "is_in_progress": true, "winner": null, "legal_moves": [], "last_move": null, "legal_castles": {"(0, 2)": true, "(0, 6)": true, "(7, 2)": true, "(7, 6)": true} }'
 

@@ -1,11 +1,10 @@
 import random
-
-import naught_util
-# from ai import NaughtAI
 import numpy as np
-from naught_tree import Node
 import copy
-import nn_util
+
+from game.ai.naught_ai.naught_tree import Node
+import game.naught_cross.naught_util as naught_util
+import game.ai.nn.nn_util as nn_util
 
 """
 Move Strats

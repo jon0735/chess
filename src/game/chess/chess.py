@@ -1,8 +1,8 @@
 import copy
 import time
-
-import chess_util
 import numpy as np
+
+import game.chess.chess_util as chess_util
 
 def _is_outside_board(pos):
     if pos[0] > 7 or pos[0] < 0 or pos[1] > 7 or pos[1] < 0:
@@ -657,14 +657,18 @@ class Move:
 
     def __eq__(self, other_move):
         if isinstance(other_move, Move):
+        # if str(Move) == str(type(other_move)):
             if len(self.frm) != len(other_move.frm) or len(self.to) != len(other_move.to):
                 return False
-            return self.frm[0] == other_move.frm[0] \
-                and self.frm[1] == other_move.frm[1] \
-                and self.to[0] == other_move.to[0] \
-                and self.to[1] == other_move.to[1] \
-                and self.promote == other_move.promote
+            return (self.frm[0] == other_move.frm[0] 
+                and self.frm[1] == other_move.frm[1] 
+                and self.to[0] == other_move.to[0] 
+                and self.to[1] == other_move.to[1] 
+                and self.promote == other_move.promote)
         else:
+            # print("Type false", type(other_move), type(self), Move)
+            # print(str(Move), str(type(other_move)))
+            # print(repr(id(self.__class__)), id(repr(Move)))
             return False
     
     def __str__(self):
@@ -839,8 +843,12 @@ class Chess:
                     "legal_moves": []}
         return Chess(chess_dict=chess_dict)
 
-        
-        # # Good __eq__ for debugging below
+    # def __eq__(self, other):
+    #     if not isinstance(other, Chess):
+    #         return False
+    #     return self.__dict__ == other.__dict__
+
+        # Good __eq__ for debugging below
         # if not np.array_equal(self.board, other.board):
         #     print("Board")
         #     return False
@@ -866,12 +874,12 @@ class Chess:
         #     print("legal_castles")
         #     return False
         # if not np.array_equal(self.legal_moves, other.legal_moves):
-        #     print("legal_moves")
-        #     print(len(self.legal_moves))
-        #     print(len(other.legal_moves))
+        #     print("\nlegal_moves")
+        #     print(len(self.legal_moves), len(other.legal_moves))
         #     if len(self.legal_moves) == len(other.legal_moves): 
         #         for i in range(len(self.legal_moves)):
-        #             print(self.legal_moves[i], ' : ', other.legal_moves[i])
+        #             if self.legal_moves[i] != other.legal_moves[i]:
+        #                 print(i, ": ", self.legal_moves[i], ' : ', other.legal_moves[i])
         #             # print(other.legal_moves)
         #     return False
         # return True

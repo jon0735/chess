@@ -652,7 +652,7 @@ $(document).ready(() => {
                 console.log("Player move success. Game ended");
                 var msg = "Game over. Winner: ";
                 if (response.winner == 1) {msg += "White"}
-                else if (response.winner == -1) {msg = "Black"}
+                else if (response.winner == -1) {msg += "Black"}
                 else {msg = "Game over. Draw"}
                 finishMove(response.move);
                 alert(msg);

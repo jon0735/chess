@@ -10,13 +10,13 @@ import json
 import matplotlib.pyplot as plt
 import csv 
 
-sys.path.append("..")
-from chess.chess import Chess
-import chess.chess as chess_src
-import chess.chess_util as chess_util
+# sys.path.append("..")
+from game.chess.chess import Chess
+import game.chess.chess as chess_src
+import game.chess.chess_util as chess_util
 
-from neural_net import NeuralNet
-import chess_ai
+from game.ai.nn.neural_net import NeuralNet
+import game.ai.chess_ai.chess_ai as chess_ai
 
 
 def train(continu=True, depth=1, rand_min=0.2, rand_max=1.0, lr_max=8e-5, lr_min=1e-6, reg = 0.005, num_threads=4): # add more parameters probably.
@@ -519,8 +519,8 @@ def plot_costs(points=100, use_all=False):
 
 if __name__ == "__main__":
     # start training
-    # train(continu=False)
-    plot_costs(use_all=True)
+    train(continu=False)
+    # plot_costs(use_all=True)
     # print("FIX TESTING")
     # new_nn = load_nn("latest")
     # best_nn = load_nn("best")

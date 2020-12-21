@@ -1,5 +1,6 @@
 import numpy as np
-import nn_util
+
+import game.ai.nn.nn_util as nn_util
 
 
 class NeuralNet:

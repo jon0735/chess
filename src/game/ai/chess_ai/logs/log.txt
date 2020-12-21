@@ -1,0 +1,12 @@
+
+=========== New Training Run ================
+
+=========== Training Run Ended ================
+
+=========== New Training Run ================
+
+Time: 1608561211.8741348, Count: 200, Repetitions: 4
+New Wins: 4, Best Wins: 0
+New Wins: 0, Sum Wins: 4
+
+=========== Training Run Ended ================
