@@ -1,16 +1,6 @@
 import numpy as np
 
 
-# def get_start_board(efficient=True):
-#     board = np.zeros((8, 8))
-#     board[7] = np.array([-2, -3, -4, -10, -100, -4, -3, -2])
-#     board[6] = np.ones(8) * -1
-#     board[1] = np.ones(8)
-#     board[0] = np.array([2, 3, 4, 10, 100, 4, 3, 2])
-#     # if not efficient:
-#     #     return board.tolist()
-#     return board
-
 def get_start_board(efficient=True):
     board = np.zeros((8, 8), dtype='i1')
     board[7] = np.array([-2, -3, -4, -10, -100, -4, -3, -2], dtype='i1')
@@ -39,6 +29,18 @@ def print_board(board):
         row_num = row_num - 1
     # print(h_line)
 
+def board_to_string(board):
+    string = "\n"
+    string += "  |0 |1 |2 |3 |4 |5 |6 |7 |\n"
+    row_num = 7
+    for row in reversed(board):
+        v_line = str(row_num) + ' |'
+        for val in row:
+            char = get_unicode_char(val)
+            v_line += char + ' |'
+        string += v_line + "\n"
+        row_num = row_num - 1
+    return string
 
 def get_unicode_char(val):
     if val == 0:

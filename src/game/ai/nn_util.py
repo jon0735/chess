@@ -52,9 +52,39 @@ def d_mse(y, real):
 
 
 
+# def nn_to_string(nn):
+#     W = nn.W
+#     b = nn.b
+#     string = "W:{"
+#     for wi in W:
+#         string += "["
+#         for r in wi:
+#             string += "["
+#             for c in r:
+#                 string += str(c) + " "
+#             string += "]"
+#         string += "]"
+#     string += "}\n"
+#     string += "b:{"
+#     for r in b:
+#         string += "["
+#         for c in r:
+#             string += str(c) + " "
+#         string += "]"
+#     string += "}"
+#     return string
+
+# def string_to_nn(string):
+#     W = []
+#     b = []
+#     #TODO fix this shit
+
+    
 
 
 
+
+# For NaughtCross. Not renamed due to lazyness
 def state_to_input(i1_board, is_in_turn, player):
     x = np.reshape(i1_board, i1_board.size)
     if player == -1 or player == 'O':  # Assumes nn is trained with 1 meaning "my piece" and -1 meaning "opponent piece"

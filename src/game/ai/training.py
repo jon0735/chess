@@ -44,7 +44,7 @@ def train(rounds, nn=None, lr=0.02, test_rounds=10):
             ongoing = nc.game_in_progress
 
         winner = nc.winner
-        in_turn = naught_util.to_i1(winner) if winner is not None else starting  # Gives wrong. Is changed in for loop
+        in_turn = naught_util.to_i1(winner) if winner is not None else starting  # Gives wrong. Is changed in for loop (well this is a useless comment)
         loss = 0
         p = 1
         score_before = nn.predict(nn_util.state_to_input(naught_util.char_to_i1_board(nc.board), not(in_turn == p), p))

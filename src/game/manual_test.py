@@ -1,12 +1,19 @@
 from chess.chess import Chess
 from chess.chess import Move
+from ai.neural_net import NeuralNet
 # from ai.tree import Node
 import ai.chess_ai as chess_ai
+import ai.neural_net as neural_net
+import ai.nn_util as nn_util
 import time
 import chess.chess as chess_f
 import chess.chess_util as chess_util
 
 import random
+import easygui
+import _thread as thread
+import time
+import numpy as np
 
 
 def test_ab_prune_speed(depth=4):
@@ -99,9 +106,58 @@ def test_get_nn_input():
 
     # print(x)
 
+def test_simple_ui_stuff():
+    stop_dict = {"stop": False}
+    thread.start_new_thread(_gui_thread, (stop_dict, ))
+    while(True):
+        print("In loop. Stop: ", stop_dict["stop"])
+        if stop_dict["stop"]:
+            break
+        time.sleep(1)
+    print("Loop stopped")
+
+
+def _gui_thread(stop_dict):
+    easygui.msgbox("Press ok to stop training")
+    stop_dict["stop"] = True
+
+
+def test_nn_saving():
+    nn = NeuralNet()
+    nn.init_net(input_size=2, output_size=1, hidden_size=5, number_of_hidden=2)
+    print("W: ", nn.W[0][0])
+    print("W: ", type(nn.W[0][0]))
+    # print(nn_util.nn_to_string(nn))
+    np.savez("Somefile", W=nn.W, b=nn.b)
+    time.sleep(.5)
+    x = np.load("Somefile.npz")
+    nn2 = NeuralNet(W=x["W"], b=x["b"])
+    print("W: ", x["W"][0][0])
+    print("W: ", type(x["W"][0][0]))
+    print(nn.predict([2, 2]))
+    print(nn2.predict([2, 2]))
+
+    print("W")
+    for i in range(len(nn2.W)):
+        for j in range(nn2.W[i].shape[0]):
+            for k in range(nn2.W[i][j].shape[0]):
+                print(nn.W[i][j,k], nn2.W[i][j,k])
+
+    print("b")
+    for i in range(len(nn.b)):
+        for j in range(nn2.b[i].shape[0]):
+            print(nn.b[i][j], nn2.b[i][j])
+
+    print(nn.depth)
+    print(nn2.depth)
+    # print(type(x.files))
+
+
 
 if __name__ == "__main__":
-    test_get_nn_input()
+    test_nn_saving()
+    # test_simple_ui_stuff()
+    # test_get_nn_input()
     # test_get_legal_moves_speed()
     # test_chess_move_speed()
     # test_ab_prune_speed(depth=3)

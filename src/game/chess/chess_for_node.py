@@ -12,7 +12,7 @@ try:
         from chess import Chess
         from chess import Move
         sys.path.insert(1, os.path.join(sys.path[0], '..'))
-        from ai.chess_ai import choose_move_ab
+        from ai.chess_ai import choose_move_ab, latest_nn_move
         # import studd
     else:
         from chess.chess import Chess
@@ -106,7 +106,8 @@ def makeAiMove(id, chess_json):
         # string += "unpacked"
         # TODO Handle 
         # move = random.choice(chess.legal_moves) # TODO Ai stuff
-        move, value = choose_move_ab(chess, depth=3)
+        # move, value = choose_move_ab(chess, depth=3)
+        move, value = latest_nn_move(chess)
         # string += "\nrandomMove"
         string = str(move)
 

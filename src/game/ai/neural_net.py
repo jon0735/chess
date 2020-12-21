@@ -6,9 +6,13 @@ class NeuralNet:
     def __init__(self, W=None, b=None):
         if W is None: 
             self.W = []
+        else:
+            self.W = W
         if b is None:
             self.b = []
-        self.depth = len(self.b)
+        else:
+            self.b = b
+        self.depth = len(self.b) + 1
 
     def init_net(self, input_size=0, output_size=0, hidden_size=0, number_of_hidden=0):
         # print("\n\n")
@@ -61,7 +65,7 @@ class NeuralNet:
         a.append(aL)
         return z, a
 
-    def cost_grad(self, x, real):
+    def cost_grad(self, x, real, reg=0.0):  # TODO CHECK REG WORKS
         z, a = self.forward_pass(x)
         cost = nn_util.mse(real, a[-1])
         output_error = np.multiply(nn_util.d_mse(real, a[-1]), nn_util.d_tanh(z[-1]))
@@ -71,7 +75,7 @@ class NeuralNet:
             error_weight_dot = np.dot(self.W[-(i + 1)], errors[-1])
             d_z = nn_util.d_relu(z[-(i + 2)])
             error_i = np.multiply(error_weight_dot, d_z)
-            dw_i = np.outer(a[-(i + 3)], error_i)
+            dw_i = np.outer(a[-(i + 3)], error_i)  #- 2 * reg * self.W[-(i + 1)]  # TODO CHECK REG
             errors.append(error_i)
             d_w.append(dw_i)
         d_w.reverse()

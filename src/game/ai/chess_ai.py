@@ -5,12 +5,15 @@ import sys
 import random
 # print(sys.path)
 # from chess.chess import Chess
+from pathlib import Path
+sys.path.append("..")
 from ai.tree import Node
+from ai.neural_net import NeuralNet
 # from chess.chess_util import efficient_copy
 
 # Most of this could be implemented more generally, instead of being hardcoded for chess. Consider doing this (If I suddenly have a bunch of free time (lol))
 
-count = 0
+count = 0  # Wtf?
 
 # Very simple evaluation function, primarily for testing/comparison
 def sum_eval(chess_content, nn=None):
@@ -26,13 +29,15 @@ def sum_eval(chess_content, nn=None):
 
 def nn_eval(chess_content, nn=None):
     chess = chess_content["chess"]
+    if not chess.is_in_progress:
+        result = 0 if chess.winner is None else chess.winner
+        return result
     nn_input = chess_to_nn_input(chess)
     return nn.predict(nn_input)[0]
-    pass
 
-
+# TODO: Move to some util file
 def chess_to_nn_input(chess):
-    nn_input = np.zeros(386)  # 64 board position x 6 piece types + in_turn + draw_counter
+    nn_input = np.zeros(386)  # 64 board position x 6 piece types + in_turn + draw_counter (include turn_num ?)
     board = chess.board
     for r in range(8):
         for c in range(8):
@@ -82,11 +87,11 @@ def choose_move_ab(chess, depth=4, eval_fun=sum_eval, nn=None, return_tree=False
     raise Exception("No children with the expected value")
 
 
-def choose_move_ab_nn(chess, depth=3, return_tree=False, nn=None):
-    if nn is None:
-        #TODO load/create nn
-        pass
-    pass
+# def choose_move_ab_nn(chess, depth=3, return_tree=False, nn=None):
+#     if nn is None:
+#         #TODO load/create nn
+#         pass
+#     pass
 
 
 # TODO count branching factor and total number of nodes. Consider sorting moves based on heuristic
@@ -121,7 +126,7 @@ def alpha_beta_prune(node, depth, maximizing, alpha=-float('inf'), beta=float('i
         # end_node = time.clock()
         # time_dict["node_creation"] += end_node - start_node
         # rec_start = time.clock()
-        child_val = alpha_beta_prune(child_node, depth - 1, not maximizing, alpha=alpha, beta=beta, time_dict=time_dict)
+        child_val = alpha_beta_prune(child_node, depth - 1, not maximizing, alpha=alpha, beta=beta, eval_fun=eval_fun, nn=nn, time_dict=time_dict)
         # rec_end = time.clock()
         # recursion_time += rec_end - rec_start
         # other_start = time.clock()
@@ -152,6 +157,16 @@ def count_tree_size(node, count_dict, level):
         count_tree_size(child, count_dict, level + 1)
 
 
+def latest_nn_move(chess, depth=2):
+    nn = load_nn("best")
+    move, val = choose_move_ab(chess, depth=depth, eval_fun=nn_eval, nn=nn, randomize=False)
+    return move, val
+
+
+def load_nn(file_name):
+    path = Path(__file__).parent.absolute()
+    x = np.load(str(path) + "/saved_nns/" + file_name + ".npz")
+    return NeuralNet(W=x["W"], b=x["b"])
 
 
 # TODO refactor big time. Especially default args in regards to sum_eval, nn_eval and nn

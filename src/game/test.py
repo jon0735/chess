@@ -1494,7 +1494,16 @@ class TestChess(unittest.TestCase):
         self.assertFalse(move in self.empty_chess.legal_moves)
         # self.assertFalse(success, "Move allowed even tho in check, with msg: " + msg)      
         
-
+    def test_king_cannot_move_next_to_king(self):  # Found via ai training
+        # print("\nHERE\n")  
+        self.empty_chess.board[7, 3] = -100
+        self.empty_chess.board[5, 1] = 100
+        self.empty_chess.in_turn = -1
+        move = Move((7, 3), (6, 2))
+        success, msg = self.empty_chess.move(move)
+        self.assertFalse(success, "King allowed to move into the attack range of other King")
+        # self.empty_chess.board[0, 4] = 100
+        # self.empty_chess.board[0, 5] = 4
         # msg = extra["msg"]
         # move_info = extra["extra"]
         # print(msg)
@@ -1587,7 +1596,7 @@ if __name__ == '__main__':  # Does not work from PyCharm python console. Use ter
     # print(chess.board[0, 0])
     # print(u'\u2654')
 
-# TODO Client side castle and en passant handling
+
 
 
 # Move failed (Error). Msg: Parsing input caused exception. Server incompetently programmed. error: string indices must be integers, Trace: Traceback (most recent call last):
