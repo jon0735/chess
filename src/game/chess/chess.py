@@ -683,6 +683,7 @@ class Chess:
             self.turn_num = 1
             self.is_in_progress = True
             self.draw_counter = 0
+            self.draw_counter_max = 50
             self.winner = None
             self.last_move = None
             self.legal_castles = {'(0, 2)' : True, '(0, 6)' : True, '(7, 2)' : True, '(7, 6)' : True}  # String keys for easier node communication
@@ -696,6 +697,7 @@ class Chess:
             and self.turn_num == other.turn_num \
             and self.is_in_progress == other.is_in_progress \
             and self.draw_counter == other.draw_counter \
+            and self.draw_counter_max == other.draw_counter_max \
             and self.winner == other.winner \
             and self.last_move == other.last_move \
             and self.legal_castles == other.legal_castles \
@@ -837,6 +839,7 @@ class Chess:
                     "turn_num": self.turn_num,
                     "is_in_progress": self.is_in_progress,
                     "draw_counter": self.draw_counter,
+                    "draw_counter_max": self.draw_counter_max,
                     "winner": self.winner,
                     "last_move": self.last_move,
                     "legal_castles": copy.deepcopy(self.legal_castles),

@@ -13,7 +13,7 @@ class Chess_cnn_v1(nn.Module):
             nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1),
             nn.LeakyReLU(0.1),
             nn.MaxPool2d(2),  # dimensions to 2x2
-            nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=256, out_channels=510, kernel_size=3, padding=1),
             nn.LeakyReLU(0.1),
             nn.MaxPool2d(2),  # dimensions to 1x1
         )
@@ -27,9 +27,11 @@ class Chess_cnn_v1(nn.Module):
             nn.Tanh()
         )
 
-    def forward(self, x):
+    # x is representation of board. y is additional features (in_turn, draw_counter)
+    def forward(self, x, y):
         x = self.conv_network(x)
         x = self.avg_pool(x)
         x = torch.flatten(x)
+        x = torch.cat((x, y), 0)
         x = self.linear_network(x)
         return x
